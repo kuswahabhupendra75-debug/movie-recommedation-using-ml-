@@ -1,0 +1,92 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          50:  '#f0f4ff',
+          100: '#e0eaff',
+          200: '#c7d7fe',
+          300: '#a5b8fb',
+          400: '#818cf8',
+          500: '#6366f1',
+          600: '#4f46e5',
+          700: '#4338ca',
+          800: '#3730a3',
+          900: '#312e81',
+        },
+        surface: {
+          base: '#0f1117',
+          raised: '#161b2e',
+          card:   '#1e2540',
+          modal:  '#252d4a',
+          border: '#2d3a5e',
+          hover:  '#323d63',
+        },
+        accent: {
+          gold:   '#fbbf24',
+          'gold-light': '#fde68a',
+          violet: '#8b5cf6',
+          cyan:   '#06b6d4',
+          rose:   '#f43f5e',
+          emerald:'#10b981',
+        },
+        text: {
+          primary:   '#f1f5f9',
+          secondary: '#94a3b8',
+          muted:     '#64748b',
+          inverse:   '#0f1117',
+        },
+      },
+      fontFamily: {
+        sans:    ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+        mono:    ['JetBrains Mono', 'Fira Code', 'monospace'],
+      },
+      backgroundImage: {
+        'hero-gradient':  'linear-gradient(135deg, #0f1117 0%, #161b2e 50%, #1a1040 100%)',
+        'card-gradient':  'linear-gradient(135deg, #1e2540 0%, #252d4a 100%)',
+        'glow-brand':     'radial-gradient(circle at center, rgba(99,102,241,0.2) 0%, transparent 70%)',
+        'glow-gold':      'radial-gradient(circle at center, rgba(251,191,36,0.15) 0%, transparent 70%)',
+        'shine':          'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.05) 50%, transparent 70%)',
+        'brand-gradient': 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%)',
+        'warm-gradient':  'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+      },
+      boxShadow: {
+        'brand':    '0 0 30px rgba(99,102,241,0.35)',
+        'brand-sm': '0 0 12px rgba(99,102,241,0.25)',
+        'gold':     '0 0 25px rgba(251,191,36,0.3)',
+        'card':     '0 8px 32px rgba(0,0,0,0.5)',
+        'glow':     '0 0 50px rgba(99,102,241,0.2)',
+        'up':       '0 -2px 20px rgba(0,0,0,0.4)',
+        'glass':    '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)',
+      },
+      animation: {
+        'fade-in':     'fadeIn 0.4s ease-out',
+        'slide-up':    'slideUp 0.5s ease-out',
+        'slide-down':  'slideDown 0.3s ease-out',
+        'scale-in':    'scaleIn 0.3s ease-out',
+        'pulse-brand': 'pulseBrand 3s ease-in-out infinite',
+        'shimmer':     'shimmer 2s infinite',
+        'float':       'float 6s ease-in-out infinite',
+      },
+      keyframes: {
+        fadeIn:     { from: { opacity: 0 }, to: { opacity: 1 } },
+        slideUp:    { from: { opacity: 0, transform: 'translateY(24px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
+        slideDown:  { from: { opacity: 0, transform: 'translateY(-12px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
+        scaleIn:    { from: { opacity: 0, transform: 'scale(0.95)' }, to: { opacity: 1, transform: 'scale(1)' } },
+        pulseBrand: { '0%,100%': { boxShadow: '0 0 15px rgba(99,102,241,0.2)' }, '50%': { boxShadow: '0 0 35px rgba(99,102,241,0.5)' } },
+        shimmer:    { '0%': { backgroundPosition: '-200% 0' }, '100%': { backgroundPosition: '200% 0' } },
+        float:      { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-8px)' } },
+      },
+      backdropBlur: {
+        xs: '2px',
+      },
+    },
+  },
+  plugins: [],
+}
