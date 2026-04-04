@@ -160,3 +160,13 @@ app = FastAPI()
 @app.get("/")
 def home():
     return {"message": "Hello World"}
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # abhi ke liye sab allow
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
