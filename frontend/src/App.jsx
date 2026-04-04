@@ -10,7 +10,7 @@ import MovieCard from './components/MovieCard'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 
-const API = 'const API = "https://movie-recommedation-using-ml.onrender.com";'
+const API = "https://movie-recommendation-using-ml.onrender.com";
 
 // ── Main discover page ────────────────────────────────────────────────────
 function DiscoverPage() {
