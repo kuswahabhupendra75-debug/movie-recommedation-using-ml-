@@ -52,7 +52,7 @@ async def startup_event():
     # 3. Build recommendation engine
     engine = HybridEngine(movies)
 
-    print("🎉  API ready at http://localhost:8000\n")
+    print("🎉  API ready at https://movie-recommedation-using-ml.onrender.com\n")
 
 
 # -----------------------------------------------------------------------
