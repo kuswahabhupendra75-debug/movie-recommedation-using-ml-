@@ -1,27 +1,12 @@
-import sys
-import os
-import site
-
-# Ensure the project root is in path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from typing import Optional, List
-import uvicorn
+from fastapi.responses import JSONResponse
+import csv
+import os
 
-from ml_engine.download_data import download_movielens
-from ml_engine.preprocessor import load_data
-from ml_engine.hybrid_engine import HybridEngine
+app = FastAPI()
 
-# -----------------------------------------------------------------------
-app = FastAPI(
-    title="Hybrid Movie Recommender API",
-    description="Research paper: Bhupendra Sinh Rajgopal Kushwaha (March 2026)",
-    version="1.0.0",
-)
-
+# CORS setup
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -30,144 +15,100 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global singleton (loaded once at startup)
-engine: HybridEngine = None
+# Global variables
+movies = []
+movie_titles = []
+movie_genres = []
 
+def load_movies():
+    global movies, movie_titles, movie_genres
+    try:
+        # Check if CSV exists
+        csv_path = 'movies.csv'
+        if not os.path.exists(csv_path):
+            print(f"❌ CSV file not found at {csv_path}")
+            return False
+            
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                movies.append(row)
+                movie_titles.append(row.get('title', ''))
+                movie_genres.append(row.get('genres', ''))
+        
+        print(f"✅ Loaded {len(movies)} movies")
+        return True
+    except Exception as e:
+        print(f"❌ Error loading movies: {e}")
+        return False
 
-# -----------------------------------------------------------------------
-# Startup
-# -----------------------------------------------------------------------
+def build_recommendation_engine():
+    global cosine_sim, indices
+    try:
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
+        
+        tfidf = TfidfVectorizer(stop_words='english')
+        tfidf_matrix = tfidf.fit_transform(movie_genres)
+        cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
+        
+        global indices
+        indices = {movie['title'].lower(): idx for idx, movie in enumerate(movies)}
+        
+        print("✅ Recommendation engine built!")
+        return True
+    except Exception as e:
+        print(f"❌ Error building engine: {e}")
+        return False
+
+# Load on startup
 @app.on_event("startup")
 async def startup_event():
-    global engine, metrics_cache
-
-    print("\n🚀  Hybrid Movie Recommender — starting up…\n")
-
-    # 1. Download dataset if missing
-    download_movielens()
-
-    # 2. Load & preprocess data
-    movies = load_data()
-    print(f"📦  Loaded {len(movies)} movies\n")
-
-    # 3. Build recommendation engine
-    engine = HybridEngine(movies)
-
-    print("🎉  API ready at https://movie-recommedation-using-ml.onrender.com\n")
-
-
-# -----------------------------------------------------------------------
-# Request / Response models
-# -----------------------------------------------------------------------
-class RecommendRequest(BaseModel):
-    movie_title: str = Field(..., example="Toy Story")
-    n: int = Field(10, ge=1, le=50, description="Number of recommendations")
-
-
-# -----------------------------------------------------------------------
-# Endpoints
-# -----------------------------------------------------------------------
-@app.get("/", tags=["Status"])
-def root():
-    return {
-        "status": "ok",
-        "message": "AI Movie Recommender API — ready!",
-        "endpoints": ["/movies", "/search", "/recommend"],
-    }
-
-
-@app.get("/movies", tags=["Data"])
-def get_all_movies():
-    """Return all available movies (for autocomplete pre-loading)."""
-    _require_engine()
-    return engine.get_all_movies()
-
-
-@app.get("/search", tags=["Data"])
-def search_movies(
-    q: str = Query(..., min_length=1, description="Partial movie title"),
-    limit: int = Query(10, ge=1, le=50),
-    region: str = Query(None, description="Filter by region: Bollywood, South Indian, Hollywood"),
-):
-    """Real-time title search with partial matching and optional region filter."""
-    _require_engine()
-    results = engine.search_movies(q, limit, region=region)
-    return {"query": q, "results": results, "count": len(results)}
-
-
-@app.post("/recommend", tags=["Recommendation"])
-def recommend(req: RecommendRequest):
-    """
-    Core endpoint — returns top-N recommendations based on genre similarity.
-    """
-    _require_engine()
-
-    results = engine.get_recommendations(
-        movie_title=req.movie_title,
-        n=req.n,
-    )
-
-    if not results:
-        raise HTTPException(
-            status_code=404,
-            detail={
-                "error": "Movie not found",
-                "message": f"'{req.movie_title}' was not found in the MovieLens dataset. "
-                           "Please check the spelling or use /search to find the exact title.",
-                "suggestion": "Try searching: /search?q=toy",
-            },
-        )
-
-    return {
-        "query": req.movie_title,
-        "recommendations": results,
-        "count": len(results),
-    }
-
-
-
-
-@app.get("/region/{region_name}", tags=["Data"])
-def get_by_region(region_name: str, limit: int = Query(50, ge=1, le=200)):
-    """
-    Return movies filtered by region.
-    region_name: Bollywood | South Indian | Hollywood
-    """
-    _require_engine()
-    valid = ["Bollywood", "South Indian", "Hollywood"]
-    if region_name not in valid:
-        raise HTTPException(status_code=400, detail=f"region must be one of {valid}")
-    movies = engine.get_movies_by_region(region_name, limit)
-    return {"region": region_name, "movies": movies, "count": len(movies)}
-
-
-# -----------------------------------------------------------------------
-# Helper
-# -----------------------------------------------------------------------
-def _require_engine():
-    if engine is None:
-        raise HTTPException(status_code=503, detail="Recommendation engine not yet loaded.")
-
-
-# -----------------------------------------------------------------------
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
-
-
-from fastapi import FastAPI
-
-app = FastAPI()
+    if load_movies():
+        build_recommendation_engine()
 
 @app.get("/")
-def home():
-    return {"message": "Hello World"}
+async def root():
+    return {"message": "Movie Recommendation API", "movies": len(movies)}
 
-from fastapi.middleware.cors import CORSMiddleware
+@app.get("/movies")
+async def get_movies():
+    return [{"title": m.get('title', ''), "genres": m.get('genres', '')} for m in movies[:100]]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # abhi ke liye sab allow
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+@app.get("/search/{query}")
+async def search_movies(query: str):
+    results = [m for m in movies if query.lower() in m.get('title', '').lower()]
+    return [{"title": m.get('title', ''), "genres": m.get('genres', '')} for m in results[:10]]
+
+@app.get("/recommend/{movie_title}")
+async def recommend_movies(movie_title: str):
+    try:
+        from sklearn.metrics.pairwise import cosine_similarity
+        
+        movie_title_lower = movie_title.lower()
+        if movie_title_lower not in indices:
+            return JSONResponse(status_code=404, content={"error": f"Movie '{movie_title}' not found"})
+        
+        idx = indices[movie_title_lower]
+        sim_scores = list(enumerate(cosine_sim[idx]))
+        sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+        sim_scores = sim_scores[1:11]
+        
+        recommendations = []
+        for i in sim_scores:
+            recommendations.append({
+                "title": movies[i[0]].get('title', ''),
+                "genres": movies[i[0]].get('genres', '')
+            })
+        
+        return {"movie": movie_title, "recommendations": recommendations}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "movies_loaded": len(movies),
+        "csv_exists": os.path.exists('movies.csv')
+    }
