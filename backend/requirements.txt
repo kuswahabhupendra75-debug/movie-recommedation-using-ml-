@@ -3,5 +3,8 @@ uvicorn
 pandas
 numpy
 scikit-learn
-gunicorn
-requests
+pydantic
+python-multipart
+setuptools
+wheelsetuptools==69.0.0
+wheel==0.42.0

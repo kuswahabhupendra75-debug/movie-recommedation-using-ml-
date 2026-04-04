@@ -1,5 +1,6 @@
 import sys
 import os
+import site
 
 # Ensure the project root is in path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
