@@ -1,4 +1,7 @@
-pip
-setuptools
+setuptools>=65.0.0
 wheel
-pandas==1.5.3
+pandas
+numpy
+scikit-learn
+flask
+gunicorn
