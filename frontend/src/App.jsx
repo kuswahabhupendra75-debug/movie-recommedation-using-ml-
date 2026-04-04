@@ -9,9 +9,6 @@ import SearchBar from './components/SearchBar'
 import MovieCard from './components/MovieCard'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
-import axios from "axios";
-
-const API = 'http://localhost:8000'
 
 // ── Main discover page ────────────────────────────────────────────────────
 function DiscoverPage() {
