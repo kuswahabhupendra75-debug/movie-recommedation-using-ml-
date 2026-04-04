@@ -9,6 +9,7 @@ import SearchBar from './components/SearchBar'
 import MovieCard from './components/MovieCard'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
+import axios from "axios";
 
 const API = 'http://localhost:8000'
 
@@ -308,3 +309,12 @@ export default function App() {
     </AuthProvider>
   )
 }
+
+const API = "https://movie-recommendation-using-ml.onrender.com";
+
+export const getRecommendations = async (movie) => {
+  const res = await axios.post(`${API}/recommend`, {
+    movie: movie
+  });
+  return res.data;
+};
