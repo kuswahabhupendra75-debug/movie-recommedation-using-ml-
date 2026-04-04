@@ -1,7 +1,6 @@
-setuptools>=65.0.0
-wheel
+fastapi
+uvicorn
 pandas
 numpy
 scikit-learn
-flask
 gunicorn
