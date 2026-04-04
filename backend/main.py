@@ -151,3 +151,22 @@ def _require_engine():
 # -----------------------------------------------------------------------
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
+
+
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def home():
+    return {"message": "Hello World"}
+
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # abhi ke liye sab allow
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

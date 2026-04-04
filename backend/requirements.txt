@@ -1,4 +1,7 @@
-pip
-setuptools
-wheel
-pandas==1.5.3
+fastapi
+uvicorn
+pandas
+numpy
+scikit-learn
+gunicorn
+requests
