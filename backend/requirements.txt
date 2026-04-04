@@ -1,5 +1,4 @@
-pandas==1.5.3
-numpy==1.23.5
-wheel
-setuptools>=65.0.0
 pip
+setuptools
+wheel
+pandas==1.5.3
