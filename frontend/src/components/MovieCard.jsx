@@ -41,7 +41,6 @@ function ScoreBar({ label, value, color }) {
 export default function MovieCard({ movie, rank, index }) {
   const [showTooltip, setShowTooltip] = useState(false)
   const genres = (movie.genres || '').split('|')
-  const isHybrid = movie.beta !== undefined && !movie.is_cold_start && movie.beta > 0
 
   return (
     <motion.div
@@ -64,16 +63,6 @@ export default function MovieCard({ movie, rank, index }) {
         <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#0f1117' }}>#{rank}</span>
       </div>
 
-      {/* Cold start tag */}
-      {movie.is_cold_start && (
-        <div style={{
-          position: 'absolute', top: '0.75rem', right: '0.75rem',
-          fontSize: '0.65rem', fontWeight: '600',
-          background: 'rgba(6,182,212,0.15)', color: '#67e8f9',
-          border: '1px solid rgba(6,182,212,0.3)',
-          padding: '0.2rem 0.6rem', borderRadius: '999px',
-        }}>Content Only</div>
-      )}
 
       {/* Title */}
       <h3 style={{ color: '#f1f5f9', fontWeight: '600', fontSize: '0.95rem', lineHeight: 1.4, marginBottom: '0.75rem', paddingRight: '3rem' }}>
@@ -95,30 +84,10 @@ export default function MovieCard({ movie, rank, index }) {
         })}
       </div>
 
-      {/* Score bars */}
-      {movie.hybrid_score !== undefined && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.875rem' }}>
-          <ScoreBar label="Hybrid" value={movie.hybrid_score} color="linear-gradient(90deg, #fbbf24, #f59e0b)" />
-          {!movie.is_cold_start && <>
-            <ScoreBar label="Content" value={movie.content_score} color="#6366f1" />
-            <ScoreBar label="Collab"  value={movie.collab_score}  color="#10b981" />
-          </>}
-        </div>
-      )}
-
-      {/* Hybrid split indicator */}
-      {isHybrid && (
-        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', fontSize: '0.7rem', color: '#64748b' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#6366f1' }} />
-            {(movie.alpha * 100).toFixed(0)}% Content
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
-            {(movie.beta * 100).toFixed(0)}% Collab
-          </div>
-        </div>
-      )}
+      {/* Score bar */}
+      <div style={{ marginBottom: '1rem' }}>
+        <ScoreBar label="Similarity" value={movie.score} color="linear-gradient(90deg, #6366f1, #818cf8)" />
+      </div>
 
       {/* Explanation tooltip */}
       {movie.explanation && (

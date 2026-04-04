@@ -3,26 +3,16 @@ import pandas as pd
 from typing import List, Dict, Optional
 
 from .content_engine import ContentEngine
-from .collab_engine import CollabEngine
 
 
 class HybridEngine:
     """
-    Hybrid Movie Recommendation Engine.
-    Combines Content-Based (TF-IDF genres) and Collaborative Filtering
-    (Item-Item cosine similarity) via weighted fusion.
-
-    Weighted Hybrid Score:
-        Hybrid_Score = (α × Content_Score) + (β × Collaborative_Score)
-
-    Cold Start: if user has < 5 ratings → α=1.0, β=0.0 (pure content-based)
+    Content-Based Movie Recommendation Engine.
+    Uses TF-IDF on movie genres to find similar films.
     """
 
-    COLD_START_THRESHOLD = 5
-
-    def __init__(self, movies: pd.DataFrame, ratings: pd.DataFrame):
+    def __init__(self, movies: pd.DataFrame):
         self.movies = movies.reset_index(drop=True)
-        self.ratings = ratings
 
         # Title → movieId lookup (lowercase)
         self.title_to_id: Dict[str, int] = {
@@ -36,10 +26,7 @@ class HybridEngine:
         print("🎬 Building Content Engine…")
         self.content_engine = ContentEngine(self.movies)
 
-        print("👥 Building Collaborative Engine…")
-        self.collab_engine = CollabEngine(self.ratings, self.movies)
-
-        print("✅ Hybrid Engine ready!\n")
+        print("✅ engine ready!\n")
 
     # ------------------------------------------------------------------
     # Public API
@@ -66,12 +53,9 @@ class HybridEngine:
 
         return None
 
-    def get_hybrid_recommendations(
+    def get_recommendations(
         self,
         movie_title: str,
-        user_id: Optional[int] = None,
-        alpha: float = 0.5,
-        beta: float = 0.5,
         n: int = 10,
     ) -> List[Dict]:
 
@@ -79,35 +63,14 @@ class HybridEngine:
         if movie_id is None:
             return []
 
-        # ---- Cold Start Logic ----------------------------------------
-        is_cold_start = False
-        user_genres: List[str] = []
-
-        if user_id is not None:
-            rating_count = self.collab_engine.get_user_rating_count(user_id)
-            if rating_count < self.COLD_START_THRESHOLD:
-                alpha, beta = 1.0, 0.0
-                is_cold_start = True
-            else:
-                user_genres = self.collab_engine.get_user_top_genres(
-                    user_id, self.movies
-                )
-        else:
-            alpha, beta = 1.0, 0.0
-            is_cold_start = True
-
-        # Normalise weights
-        total = alpha + beta if (alpha + beta) > 0 else 1.0
-        alpha /= total
-        beta /= total
-
         # ---- Scores --------------------------------------------------
         content_scores = self.content_engine.get_scores(movie_id)
-        collab_scores = self.collab_engine.get_scores(movie_id)
 
-        input_idx = self.content_engine.movie_id_to_idx.get(int(movie_id))
+        # ---- Region-aware filtering -----------------------------------
+        input_movie = self.id_to_movie.get(int(movie_id))
+        input_region = input_movie.get("region", "Hollywood") if input_movie is not None else "Hollywood"
 
-        # ---- Fuse & Rank ---------------------------------------------
+        # ---- Rank ----------------------------------------------------
         recommendations: List[Dict] = []
 
         for i, row in self.movies.iterrows():
@@ -115,37 +78,49 @@ class HybridEngine:
             if mid == movie_id:
                 continue
 
-            c_score = float(content_scores[i])
-            cf_score = float(collab_scores.get(mid, 0.0))
-            hybrid_score = (alpha * c_score) + (beta * cf_score)
+            # Region filter: only recommend movies from the same region
+            movie_region = row.get("region", "Hollywood")
+            if movie_region != input_region:
+                continue
 
-            # Build explanation
-            explanation = self._build_explanation(
-                row, c_score, cf_score, user_genres, is_cold_start, alpha, beta
-            )
+            score = float(content_scores[i])
 
             recommendations.append(
                 {
                     "movieId": mid,
                     "title": row["title"],
                     "genres": row["genres"],
-                    "region": row.get("region", "Hollywood"),
-                    "content_score": round(c_score, 4),
-                    "collab_score": round(cf_score, 4),
-                    "hybrid_score": round(hybrid_score, 4),
-                    "alpha": round(alpha, 2),
-                    "beta": round(beta, 2),
-                    "is_cold_start": is_cold_start,
-                    "explanation": explanation,
+                    "region": movie_region,
+                    "score": round(score, 4),
+                    "explanation": f"Recommended because it shares similar genres ({row['genres'].replace('|', ', ')}) with your search.",
                 }
             )
 
-        recommendations.sort(key=lambda x: x["hybrid_score"], reverse=True)
+        recommendations.sort(key=lambda x: x["score"], reverse=True)
         return recommendations[:n]
 
     def search_movies(self, query: str, limit: int = 15, region: str = None) -> List[Dict]:
         """Search movies by partial title match with optional region filter."""
         query_lower = query.lower().strip()
+        
+        # Intercept keywords for implicit region search
+        if not region:
+            if any(k in query_lower for k in ["hindi", "bollywood"]):
+                region = "Bollywood"
+                query_lower = query_lower.replace("hindi", "").replace("bollywood", "").replace("movies", "").replace("movie", "").replace("film", "").replace("films", "").strip()
+            elif any(k in query_lower for k in ["south", "tamil", "telugu", "tollywood", "indian"]):
+                # if 'indian' is present but no south, verify it's not meant for something else.
+                # but 'south indian' will map to here.
+                region = "South Indian"
+                query_lower = query_lower.replace("south", "").replace("indian", "").replace("tamil", "").replace("telugu", "").replace("tollywood", "").replace("movies", "").replace("movie", "").replace("film", "").replace("films", "").strip()
+            elif any(k in query_lower for k in ["english", "hollywood"]):
+                region = "Hollywood"
+                query_lower = query_lower.replace("english", "").replace("hollywood", "").replace("movies", "").replace("movie", "").replace("film", "").replace("films", "").strip()
+
+        # If query is mostly just the language keyword, return top movies of that region
+        if not query_lower and region:
+            return self.get_movies_by_region(region, limit)
+
         results = []
         for _, row in self.movies.iterrows():
             if query_lower in row["title"].lower():
@@ -190,39 +165,3 @@ class HybridEngine:
         ]
         return results
 
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
-
-    def _build_explanation(
-        self,
-        movie_row: pd.Series,
-        c_score: float,
-        cf_score: float,
-        user_genres: List[str],
-        is_cold_start: bool,
-        alpha: float,
-        beta: float,
-    ) -> str:
-        genres = movie_row["genres"].replace("|", ", ")
-
-        if is_cold_start:
-            return (
-                f"Recommended because it shares similar genres ({genres}) "
-                "with your search. (Content-Based — no user history)"
-            )
-
-        parts = []
-        if alpha > 0 and c_score > 0.1:
-            parts.append(f"shares genres ({genres}) with your search")
-        if beta > 0 and cf_score > 0.1:
-            if user_genres:
-                parts.append(
-                    f"users who enjoyed {', '.join(user_genres)} movies also liked this"
-                )
-            else:
-                parts.append("users similar to you enjoyed this")
-
-        if parts:
-            return "Recommended because it " + " and ".join(parts) + "."
-        return f"Matched via Hybrid Score (α={alpha:.0%} Content, β={beta:.0%} Collab)."

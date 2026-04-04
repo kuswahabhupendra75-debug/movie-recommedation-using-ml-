@@ -7,8 +7,6 @@ import { AuthProvider } from './context/AuthContext'
 import Navbar from './components/Navbar'
 import SearchBar from './components/SearchBar'
 import MovieCard from './components/MovieCard'
-import MetricsPanel from './components/MetricsPanel'
-import HybridSlider from './components/HybridSlider'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 
@@ -17,15 +15,10 @@ const API = 'http://localhost:8000'
 // ── Main discover page ────────────────────────────────────────────────────
 function DiscoverPage() {
   const [recommendations, setRecommendations] = useState([])
-  const [metrics, setMetrics] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [currentQuery, setCurrentQuery] = useState('')
-  const [userId, setUserId] = useState('')
-  const [alpha, setAlpha] = useState(0.5)
-  const [beta, setBeta] = useState(0.5)
   const [apiStatus, setApiStatus] = useState('checking')
-  const [showMetrics, setShowMetrics] = useState(false)
   const [activeRegion, setActiveRegion] = useState('All')
   const [regionMovies, setRegionMovies] = useState([])
 
@@ -56,8 +49,6 @@ function DiscoverPage() {
       try {
         await axios.get(`${API}/`, { timeout: 5000 })
         if (!cleared) setApiStatus('ok')
-        const { data } = await axios.get(`${API}/metrics`)
-        if (!cleared) setMetrics(data)
       } catch {
         if (!cleared) setApiStatus('error')
       }
@@ -68,12 +59,28 @@ function DiscoverPage() {
   }, [])
 
   const handleSearch = async (title) => {
+    const qLower = title.toLowerCase().trim()
+    
+    // Intercept purely language/region queries
+    const cleanQ = qLower.replace(/hindi|bollywood|south|indian|tamil|telugu|tollywood|english|hollywood|movie|movies|film|films/g, '').trim()
+    
+    if (cleanQ === '') {
+      if (['hindi', 'bollywood'].some(w => qLower.includes(w))) {
+        setActiveRegion('Bollywood'); setRecommendations([]); setCurrentQuery(''); setError(''); return
+      }
+      if (['south', 'tamil', 'telugu', 'tollywood'].some(w => qLower.includes(w))) {
+        setActiveRegion('South Indian'); setRecommendations([]); setCurrentQuery(''); setError(''); return
+      }
+      if (['english', 'hollywood'].some(w => qLower.includes(w))) {
+        setActiveRegion('Hollywood'); setRecommendations([]); setCurrentQuery(''); setError(''); return
+      }
+    }
+
     setLoading(true); setError(''); setCurrentQuery(title)
     try {
       const { data } = await axios.post(`${API}/recommend`, {
         movie_title: title,
-        user_id: userId ? parseInt(userId, 10) : null,
-        alpha, beta, n: 10,
+        n: 10,
       })
       setRecommendations(data.recommendations || [])
     } catch (err) {
@@ -83,7 +90,6 @@ function DiscoverPage() {
     } finally { setLoading(false) }
   }
 
-  const isColdStart = recommendations[0]?.is_cold_start
 
   return (
     <div className="min-h-screen">
@@ -94,7 +100,7 @@ function DiscoverPage() {
         <div className="absolute top-1/3 -right-24 w-80 h-80 rounded-full blur-3xl" style={{ background: 'rgba(6,182,212,0.06)' }} />
       </div>
 
-      <Navbar onMetricsToggle={() => setShowMetrics(v => !v)} showMetrics={showMetrics} />
+      <Navbar />
 
       {/* API Status */}
       <AnimatePresence>
@@ -120,48 +126,22 @@ function DiscoverPage() {
         <motion.div className="text-center pt-12 pb-10" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium mb-6 border"
             style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc' }}>
-            ✨ Powered by TF-IDF + Collaborative Filtering · MovieLens Dataset
+            ✨ AI Discovery Engine · Powered by TF-IDF genre intelligence
           </div>
           <h1 className="text-5xl sm:text-6xl font-black font-display leading-tight mb-4">
-            <span className="text-gradient-brand">AI-Powered</span>{' '}
-            <span style={{ color: '#f1f5f9' }}>Movie Discovery</span>
+            <span className="text-gradient-brand">Smart Movie</span>{' '}
+            <span style={{ color: '#f1f5f9' }}>Recommendations</span>
           </h1>
           <p style={{ color: '#94a3b8' }} className="text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
-            Find your next favourite film using our hybrid recommendation engine — combining genre intelligence and community taste.
+            Discover films based on your favorite movies with our AI-powered discovery engine.
           </p>
         </motion.div>
 
         {/* ── Search Controls ── */}
-        <motion.div className="space-y-4 mb-6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          {/* Full-width search bar */}
+        <motion.div className="space-y-4 mb-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
           <div style={{ width: '100%', maxWidth: '100%' }}>
             <SearchBar onSearch={handleSearch} onMovieSelect={m => handleSearch(m.title)} />
           </div>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
-              <label htmlFor="user-id-input" className="block text-sm font-medium mb-1.5" style={{ color: '#94a3b8' }}>
-                👤 MovieLens User ID (1–610) — optional
-              </label>
-              <input
-                id="user-id-input"
-                type="number" min={1} max={610}
-                placeholder="e.g. 42  (blank = cold start mode)"
-                value={userId}
-                onChange={e => setUserId(e.target.value)}
-                className="input-field text-sm"
-              />
-            </div>
-            <div className="flex items-end">
-              <button id="metrics-toggle-btn" onClick={() => setShowMetrics(v => !v)}
-                className="btn-secondary whitespace-nowrap text-sm py-3"
-                style={showMetrics ? { borderColor: '#6366f1', color: '#818cf8' } : {}}>
-                📊 {showMetrics ? 'Hide' : 'Show'} Metrics
-              </button>
-            </div>
-          </div>
-
-          <HybridSlider alpha={alpha} beta={beta} onChange={(a, b) => { setAlpha(a); setBeta(b) }} />
         </motion.div>
 
         {/* ── Region Tabs ── */}
@@ -223,14 +203,6 @@ function DiscoverPage() {
           </div>
         </motion.div>
 
-        {/* ── Metrics ── */}
-        <AnimatePresence>
-          {showMetrics && metrics && (
-            <motion.div className="mb-8" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-              <MetricsPanel metrics={metrics} />
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* ── Loading ── */}
         <AnimatePresence>
@@ -241,8 +213,8 @@ function DiscoverPage() {
                   style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 8px 32px rgba(99,102,241,0.4)' }}>
                   🎬
                 </div>
-                <p className="font-semibold text-base" style={{ color: '#818cf8' }}>Computing hybrid recommendations…</p>
-                <p className="text-sm" style={{ color: '#64748b' }}>Running TF-IDF × Cosine Similarity fusion</p>
+                <p className="font-semibold text-base" style={{ color: '#818cf8' }}>Finding perfect matches…</p>
+                <p className="text-sm" style={{ color: '#64748b' }}>Running TF-IDF genre similarity analysis</p>
               </div>
             </motion.div>
           )}
@@ -271,17 +243,8 @@ function DiscoverPage() {
                   <span className="text-gradient-brand">"{currentQuery}"</span>
                 </h2>
                 <p className="text-sm mt-1" style={{ color: '#64748b' }}>
-                  {isColdStart
-                    ? '🔵 Cold Start — pure content-based (no user history)'
-                    : `🔀 Hybrid · α=${alpha.toFixed(1)} Content + β=${beta.toFixed(1)} Collab · User #${userId}`}
+                  AI-powered genre similarity matching (Content-Based Engine)
                 </p>
-              </div>
-              <div className="hidden sm:flex items-center gap-3 text-xs" style={{ color: '#64748b' }}>
-                {[['#fbbf24','Hybrid'],['#818cf8','Content'],['#34d399','Collab']].map(([c,l]) => (
-                  <span key={l} className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full inline-block" style={{ background: c }} />{l}
-                  </span>
-                ))}
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -323,8 +286,8 @@ function DiscoverPage() {
       </main>
 
       <footer className="py-8 text-center text-xs" style={{ borderTop: '1px solid #2d3a5e', color: '#64748b' }}>
-        <p><span className="text-gradient-brand font-semibold">CineHybrid</span> · Hybrid Movie Recommendation System · Bhupendra Sinh Rajgopal Kushwaha · March 2026</p>
-        <p className="mt-1 opacity-60">MovieLens Dataset · TF-IDF Content-Based + Item-Item Collaborative Filtering</p>
+        <p><span className="text-gradient-brand font-semibold">CineHybrid</span> · Smart Movie Discovery · Bhupendra Sinh Rajgopal Kushwaha · March 2026</p>
+        <p className="mt-1 opacity-60">Curated Movies Dataset · TF-IDF Content-Based Engine</p>
       </footer>
     </div>
   )

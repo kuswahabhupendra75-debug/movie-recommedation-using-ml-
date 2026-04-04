@@ -6,14 +6,12 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 
 
 def load_data():
-    """Load and preprocess movies.csv and ratings.csv, then inject custom movies."""
+    """Load and preprocess movies.csv, then inject custom movies."""
     from .custom_movies import CUSTOM_MOVIES
 
     movies_path = os.path.join(DATA_DIR, "movies.csv")
-    ratings_path = os.path.join(DATA_DIR, "ratings.csv")
 
     movies = pd.read_csv(movies_path)
-    ratings = pd.read_csv(ratings_path)
 
     # Handle missing / blank genres
     movies["genres"] = movies["genres"].fillna("Unknown")
@@ -33,19 +31,5 @@ def load_data():
     movies = pd.concat([movies, custom_df], ignore_index=True)
     print(f"   🌍 Total movies after custom injection: {len(movies)}")
 
-    # Drop invalid ratings
-    ratings = ratings.dropna(subset=["userId", "movieId", "rating"])
-    ratings["userId"] = ratings["userId"].astype(int)
-    ratings["movieId"] = ratings["movieId"].astype(int)
+    return movies
 
-    return movies, ratings
-
-
-def build_user_item_matrix(ratings: pd.DataFrame) -> pd.DataFrame:
-    """Pivot ratings into a User × Movie matrix."""
-    return ratings.pivot_table(
-        index="userId",
-        columns="movieId",
-        values="rating",
-        fill_value=0,
-    )

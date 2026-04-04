@@ -13,7 +13,6 @@ import uvicorn
 from ml_engine.download_data import download_movielens
 from ml_engine.preprocessor import load_data
 from ml_engine.hybrid_engine import HybridEngine
-from ml_engine.evaluator import calculate_rmse
 
 # -----------------------------------------------------------------------
 app = FastAPI(
@@ -30,9 +29,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global singletons (loaded once at startup)
+# Global singleton (loaded once at startup)
 engine: HybridEngine = None
-metrics_cache: dict = None
 
 
 # -----------------------------------------------------------------------
@@ -48,16 +46,11 @@ async def startup_event():
     download_movielens()
 
     # 2. Load & preprocess data
-    movies, ratings = load_data()
-    print(f"📦  Loaded {len(movies)} movies | {len(ratings)} ratings\n")
+    movies = load_data()
+    print(f"📦  Loaded {len(movies)} movies\n")
 
-    # 3. Build recommendation engines
-    engine = HybridEngine(movies, ratings)
-
-    # 4. Compute RMSE metrics (background — small dataset so it's fast)
-    print("📊  Computing RMSE metrics…")
-    metrics_cache = calculate_rmse(ratings)
-    print(f"    RMSE = {metrics_cache['rmse']}\n")
+    # 3. Build recommendation engine
+    engine = HybridEngine(movies)
 
     print("🎉  API ready at http://localhost:8000\n")
 
@@ -67,9 +60,6 @@ async def startup_event():
 # -----------------------------------------------------------------------
 class RecommendRequest(BaseModel):
     movie_title: str = Field(..., example="Toy Story")
-    user_id: Optional[int] = Field(None, example=1, description="MovieLens user ID (1-610). Omit for cold-start.")
-    alpha: float = Field(0.5, ge=0.0, le=1.0, description="Content weight (0-1)")
-    beta: float = Field(0.5, ge=0.0, le=1.0, description="Collaborative weight (0-1)")
     n: int = Field(10, ge=1, le=50, description="Number of recommendations")
 
 
@@ -80,8 +70,8 @@ class RecommendRequest(BaseModel):
 def root():
     return {
         "status": "ok",
-        "message": "Hybrid Movie Recommender API — ready!",
-        "endpoints": ["/movies", "/search", "/recommend", "/metrics"],
+        "message": "AI Movie Recommender API — ready!",
+        "endpoints": ["/movies", "/search", "/recommend"],
     }
 
 
@@ -107,18 +97,12 @@ def search_movies(
 @app.post("/recommend", tags=["Recommendation"])
 def recommend(req: RecommendRequest):
     """
-    Core endpoint — returns top-N hybrid recommendations.
-
-    Hybrid Score = (α × Content_Score) + (β × Collaborative_Score)
-    Cold Start:  if user_id is absent or has < 5 ratings → α=1, β=0
+    Core endpoint — returns top-N recommendations based on genre similarity.
     """
     _require_engine()
 
-    results = engine.get_hybrid_recommendations(
+    results = engine.get_recommendations(
         movie_title=req.movie_title,
-        user_id=req.user_id,
-        alpha=req.alpha,
-        beta=req.beta,
         n=req.n,
     )
 
@@ -135,20 +119,11 @@ def recommend(req: RecommendRequest):
 
     return {
         "query": req.movie_title,
-        "user_id": req.user_id,
-        "alpha": req.alpha,
-        "beta": req.beta,
         "recommendations": results,
         "count": len(results),
     }
 
 
-@app.get("/metrics", tags=["Evaluation"])
-def get_metrics():
-    """Return RMSE, dataset statistics, and accuracy metrics."""
-    if metrics_cache is None:
-        raise HTTPException(status_code=503, detail="Metrics not yet computed. Server is still starting.")
-    return metrics_cache
 
 
 @app.get("/region/{region_name}", tags=["Data"])

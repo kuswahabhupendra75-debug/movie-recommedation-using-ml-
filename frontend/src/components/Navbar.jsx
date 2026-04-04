@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 
-export default function Navbar({ onMetricsToggle, showMetrics }) {
+export default function Navbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -30,13 +30,6 @@ export default function Navbar({ onMetricsToggle, showMetrics }) {
           <Link to="/" className={`nav-link ${location.pathname === '/' ? 'text-white bg-surface-card' : ''}`} style={location.pathname === '/' ? { background: '#1e2540', color: '#fff' } : {}}>
             🎬 Discover
           </Link>
-          <button
-            className="nav-link"
-            onClick={onMetricsToggle}
-            style={{ cursor: 'pointer', background: showMetrics ? '#1e2540' : 'transparent', color: showMetrics ? '#818cf8' : '#94a3b8' }}
-          >
-            📊 Metrics
-          </button>
         </div>
 
         {/* Right side */}
