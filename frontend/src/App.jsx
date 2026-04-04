@@ -10,11 +10,8 @@ import MovieCard from './components/MovieCard'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 
-<<<<<<< HEAD
-const API = 'https://movie-recommedation-using-ml.onrender.com'
+const API = 'const API = "https://movie-recommedation-using-ml.onrender.com";'
 
-=======
->>>>>>> c84a50c5f5fed84f073a9c4ae4422c9394cfda14
 // ── Main discover page ────────────────────────────────────────────────────
 function DiscoverPage() {
   const [recommendations, setRecommendations] = useState([])
@@ -312,11 +309,3 @@ export default function App() {
   )
 }
 
-const API = "https://movie-recommendation-using-ml.onrender.com";
-
-export const getRecommendations = async (movie) => {
-  const res = await axios.post(`${API}/recommend`, {
-    movie: movie
-  });
-  return res.data;
-};
