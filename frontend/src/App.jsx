@@ -7,8 +7,10 @@ import { AuthProvider } from './context/AuthContext'
 import Navbar from './components/Navbar'
 import SearchBar from './components/SearchBar'
 import SignupPage from './pages/SignupPage'
+import LoginPage from './pages/LoginPage'
 import HybridSlider from './components/HybridSlider'
 import MetricsPanel from './components/MetricsPanel'
+import MovieCard from './components/MovieCard'
 const API = import.meta.env.VITE_API_URL || "https://movie-recommedation-using-ml.onrender.com"
 
 // ── Main discover page ────────────────────────────────────────────────────
