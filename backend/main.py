@@ -4,6 +4,8 @@ from fastapi.responses import JSONResponse
 import csv
 import os
 import random
+from pydantic import BaseModel
+from typing import Optional, List
 
 app = FastAPI()
 
@@ -15,6 +17,16 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allow all headers
 )
+
+class RecommendRequest(BaseModel):
+    movie_title: str
+    n: Optional[int] = 10
+
+class MovieResponse(BaseModel):
+    title: str
+    genres: str
+    movieId: Optional[str] = None
+    year: Optional[str] = None
 
 # Global variable for movies
 movies = []
@@ -141,6 +153,35 @@ async def recommend_movies(movie_title: str):
         recommendations.extend(remaining[:10-len(recommendations)])
     
     return {"movie": movie_title, "recommendations": recommendations}
+
+@app.post("/recommend")
+async def recommend_movies_post(request: RecommendRequest):
+    return await recommend_movies(request.movie_title)
+
+@app.get("/region/{region}")
+async def get_by_region(region: str):
+    # Map regions to internal genre search terms
+    region_map = {
+        'Bollywood': 'Hindi',
+        'South Indian': 'South', # Assuming 'South' or similar in genres
+        'Hollywood': 'English'
+    }
+    
+    search_term = region_map.get(region, region)
+    if not movies:
+        return {"movies": []}
+    
+    results = []
+    for m in movies:
+        if search_term.lower() in m.get('genres', '').lower():
+            results.append({
+                'title': m['title'],
+                'genres': m['genres'],
+                'movieId': m.get('movieId')
+            })
+        if len(results) >= 20:
+            break
+    return {"movies": results}
 
 @app.get("/popular")
 async def get_popular():
