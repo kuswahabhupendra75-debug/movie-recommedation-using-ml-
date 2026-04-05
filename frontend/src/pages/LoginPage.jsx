@@ -48,9 +48,13 @@ export default function LoginPage() {
     if (Object.keys(errs).length) { setErrors(errs); return }
 
     setSubmitting(true)
-    await new Promise(r => setTimeout(r, 900)) // Simulate auth
-    login({ name: form.email.split('@')[0], email: form.email })
-    navigate('/')
+    const result = await login(form.email, form.password)
+    if (result.success) {
+      navigate('/')
+    } else {
+      setErrors({ form: result.error || "Login failed. Please check your credentials." })
+      setSubmitting(false)
+    }
   }
 
   const handleSocial = async (fn) => {

@@ -16,11 +16,10 @@ def migrate():
         
         # 1. Setup Tables
         print("🔨 Setting up tables...")
-        cur.execute("DROP TABLE IF EXISTS movies CASCADE;")
-        cur.execute("DROP TABLE IF EXISTS ratings CASCADE;")
+        # (Removed destructive drops for stability)
         
         cur.execute("""
-            CREATE TABLE movies (
+            CREATE TABLE IF NOT EXISTS movies (
                 id SERIAL PRIMARY KEY,
                 movieId TEXT UNIQUE,
                 title TEXT,
@@ -31,12 +30,22 @@ def migrate():
         """)
         
         cur.execute("""
-            CREATE TABLE ratings (
+            CREATE TABLE IF NOT EXISTS ratings (
                 id SERIAL PRIMARY KEY,
                 userId INTEGER,
                 movieId TEXT,
                 rating FLOAT,
                 timestamp BIGINT
+            );
+        """)
+        
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE,
+                email TEXT UNIQUE,
+                password TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
         

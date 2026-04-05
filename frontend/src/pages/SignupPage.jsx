@@ -44,7 +44,7 @@ function PasswordStrength({ password }) {
 }
 
 export default function SignupPage() {
-  const { login, loginWithGoogle, loginWithGitHub } = useAuth()
+  const { login, signup, loginWithGoogle, loginWithGitHub } = useAuth()
   const navigate = useNavigate()
 
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' })
@@ -72,9 +72,16 @@ export default function SignupPage() {
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
     setSubmitting(true)
-    await new Promise(r => setTimeout(r, 900))
-    login({ name: form.name, email: form.email })
-    navigate('/')
+    
+    // Use name as username for backend
+    const result = await signup(form.name, form.email, form.password)
+    if (result.success) {
+      // Auto-login or redirect to login
+      navigate('/login')
+    } else {
+      setErrors({ form: result.error || "Signup failed. Try a different username/email." })
+      setSubmitting(false)
+    }
   }
 
   const handleSocial = async (fn) => {

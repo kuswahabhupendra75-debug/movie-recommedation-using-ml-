@@ -15,19 +15,53 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }, [])
 
-  const login = ({ name, email, avatar }) => {
-    const u = { name, email, avatar: avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff&bold=true` }
-    setUser(u)
-    localStorage.setItem('cinehybrid_user', JSON.stringify(u))
+  const API = import.meta.env.VITE_API_URL || "https://movie-recommedation-using-ml.onrender.com"
+
+  const loginUser = async (username, password) => {
+    const res = await fetch(`${API}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    })
+    const data = await res.json()
+    if (data.status === "success") {
+      const u = { 
+        name: data.username, 
+        userId: data.userId, 
+        email: data.email || `${data.username}@cinehybrid.com`, 
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=6366f1&color=fff&bold=true` 
+      }
+      setUser(u)
+      localStorage.setItem('cinehybrid_user', JSON.stringify(u))
+      return { success: true }
+    }
+    return { success: false, error: data.error }
+  }
+
+  const signupUser = async (username, email, password) => {
+    const res = await fetch(`${API}/signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email, password })
+    })
+    const data = await res.json()
+    if (data.status === "success") {
+      return { success: true }
+    }
+    return { success: false, error: data.error }
   }
 
   const loginWithGoogle = () => {
     // Mock Google OAuth — in production replace with real OAuth flow
-    login({ name: 'Google User', email: 'user@gmail.com', avatar: null })
+    const u = { name: 'G-User-101', userId: 101, email: 'user@gmail.com', avatar: null }
+    setUser(u)
+    localStorage.setItem('cinehybrid_user', JSON.stringify(u))
   }
 
   const loginWithGitHub = () => {
-    login({ name: 'GitHub User', email: 'user@github.com', avatar: null })
+    const u = { name: 'GH-User-102', userId: 102, email: 'user@github.com', avatar: null }
+    setUser(u)
+    localStorage.setItem('cinehybrid_user', JSON.stringify(u))
   }
 
   const logout = () => {
@@ -36,7 +70,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, loginWithGoogle, loginWithGitHub, logout, loading }}>
+    <AuthContext.Provider value={{ user, login: loginUser, signup: signupUser, loginWithGoogle, loginWithGitHub, logout, loading }}>
       {children}
     </AuthContext.Provider>
   )
