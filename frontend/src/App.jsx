@@ -300,7 +300,7 @@ function DiscoverPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {recommendations.map((movie, i) => (
-                <MovieCard key={movie.movieId} movie={movie} rank={i + 1} index={i} />
+                <MovieCard key={`${movie.movieId}-${i}`} movie={movie} rank={i + 1} index={i} />
               ))}
             </div>
           </motion.div>
@@ -317,7 +317,7 @@ function DiscoverPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {regionMovies.map((movie, i) => (
-                <MovieCard key={movie.movieId} movie={movie} rank={i + 1} index={i} />
+                <MovieCard key={`${movie.movieId}-${i}`} movie={movie} rank={i + 1} index={i} />
               ))}
             </div>
           </motion.div>
