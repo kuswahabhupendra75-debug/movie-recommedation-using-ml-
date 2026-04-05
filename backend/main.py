@@ -131,10 +131,11 @@ async def recommend_movies(movie_title: str, n: int = 10):
     if not base_movie:
         return JSONResponse(status_code=404, content={"error": f"Movie '{movie_title}' not found"})
     
-    # Genre-based recommendation
+    # Genre and Region-based recommendation
     movie_genres = base_movie.get('genres', '').split('|')
+    base_regions = [g.lower() for g in movie_genres if g.lower() in ['hindi', 'south-indian', 'hollywood']]
     
-    # Score each movie based on genre match
+    # Score each movie
     scored = []
     for m in movies:
         if m['title'].lower() == movie_title.lower():
@@ -143,24 +144,41 @@ async def recommend_movies(movie_title: str, n: int = 10):
         matches = []
         if movie_genres and m.get('genres'):
             m_genres = m['genres'].split('|')
+            m_regions = [g.lower() for g in m_genres if g.lower() in ['hindi', 'south-indian', 'hollywood']]
+            
             for g in movie_genres:
+                # Genres like Action, Comedy, etc.
                 if g in m_genres:
                     matches.append(g)
-        
-        score = len(matches) / len(movie_genres) if movie_genres else 0
+            
+            # Calculate Score
+            score = len(matches) / len(movie_genres) if movie_genres else 0
+            
+            # LANGUAGE BOOST: If regions match, give a massive boost
+            region_match = False
+            for r in base_regions:
+                if r in m_regions:
+                    region_match = True
+                    break
+            
+            if region_match:
+                score += 2.0  # Ensure same region movies always appear first
+            
         scored.append((score, matches, m))
     
     # Sort by score and get top n
     scored.sort(reverse=True, key=lambda x: x[0])
     recommendations = []
     for score, matches, m in scored[:n]:
-        expl = f"Matches: {', '.join(matches)}" if matches else "Popular in your region"
+        # Filter matches to remove the region tag from the UI tags
+        clean_matches = [g for g in matches if g.lower() not in ['hindi', 'south-indian', 'hollywood']]
+        expl = f"Matches: {', '.join(clean_matches)}" if clean_matches else "Recommended for you"
         recommendations.append({
             'title': m.get('title', ''),
             'genres': m.get('genres', ''),
             'movieId': m.get('movieId', ''),
             'year': m.get('year', ''),
-            'score': round(score, 2),
+            'score': min(1.0, score / 3.0) if score > 1.0 else round(score, 2),
             'explanation': expl
         })
     
@@ -191,24 +209,24 @@ async def get_by_region(region: str):
     # Map regions to internal genre search terms
     region_map = {
         'Bollywood': 'Hindi',
-        'South Indian': 'South',
-        'Hollywood': 'English'
+        'South Indian': 'South-Indian',
+        'Hollywood': 'Hollywood'
     }
     
-    search_term = region_map.get(region, region)
+    search_term = region_map.get(region, region).lower()
     if not movies:
         return {"movies": []}
     
     results = []
     for m in movies:
-        if search_term.lower() in m.get('genres', '').lower():
+        if search_term in m.get('genres', '').lower():
             results.append({
                 'title': m['title'],
                 'genres': m['genres'],
                 'movieId': m.get('movieId'),
                 'year': m.get('year'),
                 'score': 0.8,
-                'explanation': f"Featured in {region}"
+                'explanation': f"Top pick in {region}"
             })
         if len(results) >= 20:
             break
