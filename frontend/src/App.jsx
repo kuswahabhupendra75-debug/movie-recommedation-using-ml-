@@ -9,7 +9,7 @@ import SearchBar from './components/SearchBar'
 import MovieCard from './components/MovieCard'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
-const API = "https://movie-recommedation-using-ml.onrender.com";
+VITE_API_URL = "https://movie-recommedation-using-ml.onrender.com"
 
 // ── Main discover page ────────────────────────────────────────────────────
 function DiscoverPage() {
