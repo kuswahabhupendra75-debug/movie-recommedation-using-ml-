@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 
-const API = 'http://localhost:8000'
+const API = import.meta.env.VITE_API_URL || "https://movie-recommedation-using-ml.onrender.com"
 
 export default function SearchBar({ onSearch, onMovieSelect }) {
   const [query, setQuery] = useState('')
@@ -26,8 +26,8 @@ export default function SearchBar({ onSearch, onMovieSelect }) {
     debounceRef.current = setTimeout(async () => {
       setLoading(true)
       try {
-        const { data } = await axios.get(`${API}/search`, { params: { q: val, limit: 10 } })
-        setSuggestions(data.results || [])
+        const { data } = await axios.get(`${API}/search/${val}`)
+        setSuggestions(data || [])
         setOpen(true)
       } catch { setSuggestions([]) }
       finally { setLoading(false) }
