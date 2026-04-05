@@ -6,9 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { AuthProvider } from './context/AuthContext'
 import Navbar from './components/Navbar'
 import SearchBar from './components/SearchBar'
-import MovieCard from './components/MovieCard'
-import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
+import HybridSlider from './components/HybridSlider'
+import MetricsPanel from './components/MetricsPanel'
 const API = import.meta.env.VITE_API_URL || "https://movie-recommedation-using-ml.onrender.com"
 
 // ── Main discover page ────────────────────────────────────────────────────
@@ -20,6 +20,13 @@ function DiscoverPage() {
   const [apiStatus, setApiStatus] = useState('checking')
   const [activeRegion, setActiveRegion] = useState('All')
   const [regionMovies, setRegionMovies] = useState([])
+  
+  // Pro Mode States
+  const [alpha, setAlpha] = useState(0.5)
+  const [beta, setBeta] = useState(0.5)
+  const [userId, setUserId] = useState('')
+  const [showMetrics, setShowMetrics] = useState(false)
+  const [metrics, setMetrics] = useState(null)
 
   useEffect(() => {
     let cleared = false
@@ -57,6 +64,12 @@ function DiscoverPage() {
     return () => { cleared = true; clearInterval(iv) }
   }, [])
 
+  useEffect(() => {
+    if (showMetrics && !metrics) {
+      axios.get(`${API}/metrics`).then(({ data }) => setMetrics(data)).catch(() => {})
+    }
+  }, [showMetrics, metrics])
+
   const handleSearch = async (title) => {
     const qLower = title.toLowerCase().trim()
     
@@ -80,6 +93,9 @@ function DiscoverPage() {
       const { data } = await axios.post(`${API}/recommend`, {
         movie_title: title,
         n: 10,
+        alpha,
+        beta,
+        user_id: userId ? parseInt(userId) : null
       })
       setRecommendations(data.recommendations || [])
     } catch (err) {
@@ -136,10 +152,44 @@ function DiscoverPage() {
           </p>
         </motion.div>
 
-        {/* ── Search Controls ── */}
-        <motion.div className="space-y-4 mb-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <div style={{ width: '100%', maxWidth: '100%' }}>
-            <SearchBar onSearch={handleSearch} onMovieSelect={m => handleSearch(m.title)} />
+        <motion.div className="space-y-6 mb-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+          <div className="flex flex-col md:flex-row gap-4 items-start">
+            <div className="flex-1 w-full">
+               <SearchBar onSearch={handleSearch} onMovieSelect={m => handleSearch(m.title)} />
+            </div>
+            
+            <div className="w-full md:w-64">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-500">👤</div>
+                <input 
+                  type="number" 
+                  placeholder="User ID (1-610)"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  className="w-full bg-[#1e2540] border border-[#2d3a5e] rounded-2xl py-3.5 pl-11 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                />
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => setShowMetrics(!showMetrics)}
+              className={`px-6 py-3.5 rounded-2xl text-sm font-bold transition-all flex items-center gap-2 ${showMetrics ? 'bg-indigo-600 shadow-indigo-500/25' : 'bg-slate-800/50 border border-slate-700'}`}
+            >
+              {showMetrics ? '📊 Hide Metrics' : '📊 Show Metrics'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+               <HybridSlider alpha={alpha} beta={beta} onChange={(a, b) => { setAlpha(a); setBeta(b) }} />
+            </div>
+            <AnimatePresence>
+              {showMetrics && (
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
+                   <MetricsPanel metrics={metrics} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </motion.div>
 

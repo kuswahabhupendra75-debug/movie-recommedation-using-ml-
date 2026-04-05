@@ -2,10 +2,10 @@ import { motion } from 'framer-motion'
 
 function Stat({ label, value, sub }) {
   return (
-    <div className="flex flex-col items-center text-center p-4 bg-cinema-black/40 rounded-xl border border-cinema-border/50">
-      <span className="text-2xl font-bold font-display text-gradient-gold">{value}</span>
-      <span className="text-cinema-text text-sm font-medium mt-0.5">{label}</span>
-      {sub && <span className="text-cinema-muted text-xs mt-0.5">{sub}</span>}
+    <div className="flex flex-col items-center text-center p-3 bg-slate-900/60 rounded-xl border border-slate-800/50 shadow-sm transition-transform hover:scale-[1.02]">
+      <span className="text-xl font-black font-display text-indigo-400">{value}</span>
+      <span className="text-slate-300 text-[10px] font-bold uppercase tracking-widest mt-1">{label}</span>
+      {sub && <span className="text-slate-500 text-[9px] mt-0.5">{sub}</span>}
     </div>
   )
 }
@@ -16,16 +16,18 @@ export default function MetricsPanel({ metrics }) {
   return (
     <motion.div
       id="metrics-panel"
-      className="card p-6"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      className="rounded-2xl p-6 border border-slate-700/50 bg-slate-800/30 backdrop-blur-md shadow-2xl h-full"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4 }}
     >
-      <div className="flex items-center gap-2 mb-5">
-        <span className="text-2xl">📊</span>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-xl shadow-inner">
+          📊
+        </div>
         <div>
-          <h2 className="text-cinema-text font-semibold font-display text-lg">System Metrics</h2>
-          <p className="text-cinema-muted text-xs">{metrics.dataset}</p>
+          <h2 className="text-slate-100 font-bold text-base leading-none">System Metrics</h2>
+          <p className="text-slate-500 text-[10px] mt-1 uppercase tracking-wider">{metrics.dataset}</p>
         </div>
       </div>
 
@@ -61,15 +63,15 @@ export default function MetricsPanel({ metrics }) {
       </div>
 
       {/* Algorithm explainer */}
-      <div className="bg-cinema-black/30 rounded-xl p-4 border border-cinema-border/30">
-        <p className="text-cinema-muted text-xs leading-relaxed">
-          <span className="text-cinema-gold font-semibold">Hybrid Score Formula: </span>
-          <code className="text-cinema-text font-mono">
-            Score = (α × Content_Score) + (β × Collaborative_Score)
+      <div className="mt-4 p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20">
+        <p className="text-slate-500 text-[10px] leading-relaxed">
+          <span className="text-indigo-400 font-bold uppercase tracking-tighter">Hybrid Formula: </span>
+          <code className="text-slate-300 font-mono text-[11px]">
+            (α × Content) + (β × Collaborative)
           </code>
           <br />
-          <span className="text-cinema-muted">
-            Cold Start: when a user has fewer than 5 ratings, α=1.0 (pure content-based filtering).
+          <span className="text-slate-600 italic">
+            Cold Start: when a user is new, we prioritize content-based matching.
           </span>
         </p>
       </div>

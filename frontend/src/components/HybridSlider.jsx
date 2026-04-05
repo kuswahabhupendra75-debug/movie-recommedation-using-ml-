@@ -1,17 +1,19 @@
 export default function HybridSlider({ alpha, beta, onChange }) {
   return (
-    <div id="hybrid-slider" className="bg-cinema-card border border-cinema-border rounded-2xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-cinema-text font-semibold text-sm">⚖️ Hybrid Weight Control</h3>
-        <span className="text-cinema-muted text-xs">α + β = 1.0</span>
+    <div id="hybrid-slider" className="rounded-2xl p-6 border border-[#2d3a5e] bg-slate-900/40 backdrop-blur-sm shadow-xl">
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-slate-100 font-bold text-sm flex items-center gap-2">
+          <span className="text-indigo-400 text-lg">⚖️</span> Hybrid Weight Control
+        </h3>
+        <span className="text-slate-500 font-mono text-[10px] uppercase tracking-wider">α + β = 1.0</span>
       </div>
 
       <div className="space-y-4">
         {/* Alpha (Content) */}
         <div>
-          <div className="flex justify-between text-xs mb-1.5">
-            <span className="text-blue-400 font-medium">🎭 Content-Based (α)</span>
-            <span className="text-cinema-text font-mono">{alpha.toFixed(1)}</span>
+          <div className="flex justify-between text-xs mb-2">
+            <span className="text-indigo-300 font-semibold uppercase tracking-tight">🎭 Genres Similarity (α)</span>
+            <span className="text-white font-mono bg-indigo-500/20 px-2 rounded">{alpha.toFixed(1)}</span>
           </div>
           <input
             id="alpha-slider"
@@ -30,21 +32,21 @@ export default function HybridSlider({ alpha, beta, onChange }) {
                        [&::-webkit-slider-thumb]:bg-blue-400 [&::-webkit-slider-thumb]:cursor-pointer
                        [&::-webkit-slider-thumb]:shadow-lg"
             style={{
-              background: `linear-gradient(to right, #60a5fa ${alpha * 100}%, #1e1e2e ${alpha * 100}%)`
+              background: `linear-gradient(to right, #6366f1 ${alpha * 100}%, #1e293b ${alpha * 100}%)`
             }}
           />
         </div>
 
         {/* Beta (Collaborative) */}
         <div>
-          <div className="flex justify-between text-xs mb-1.5">
-            <span className="text-emerald-400 font-medium">👥 Collaborative (β)</span>
-            <span className="text-cinema-text font-mono">{beta.toFixed(1)}</span>
+          <div className="flex justify-between text-xs mb-2">
+            <span className="text-emerald-300 font-semibold uppercase tracking-tight">👥 Member Ratings (β)</span>
+            <span className="text-white font-mono bg-emerald-500/20 px-2 rounded">{beta.toFixed(1)}</span>
           </div>
           <div
             className="w-full h-2 rounded-full"
             style={{
-              background: `linear-gradient(to right, #34d399 ${beta * 100}%, #1e1e2e ${beta * 100}%)`
+              background: `linear-gradient(to right, #10b981 ${beta * 100}%, #1e293b ${beta * 100}%)`
             }}
           />
         </div>
@@ -61,12 +63,12 @@ export default function HybridSlider({ alpha, beta, onChange }) {
           />
         </div>
 
-        <p className="text-cinema-muted text-xs">
+        <p className="text-slate-500 text-[11px] leading-relaxed italic border-t border-slate-800/50 pt-4">
           {alpha === 1.0
-            ? '🔵 Pure Content-Based — using only genre similarity'
+            ? '🔵 Pure Content Mode — using only genre and theme similarity'
             : beta === 1.0
-            ? '🟢 Pure Collaborative — using only user behaviour'
-            : `🔀 Hybrid: ${(alpha * 100).toFixed(0)}% genre similarity + ${(beta * 100).toFixed(0)}% user behaviour`}
+            ? '🟢 Pure Collaborative — using only data-driven user behaviour'
+            : `🔀 Hybrid Mode: ${(alpha * 100).toFixed(0)}% genre matching + ${(beta * 100).toFixed(0)}% community ratings`}
         </p>
       </div>
     </div>
