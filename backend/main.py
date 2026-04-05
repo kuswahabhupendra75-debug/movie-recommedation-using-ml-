@@ -30,8 +30,36 @@ class MovieResponse(BaseModel):
     score: Optional[float] = 0.0
     explanation: Optional[str] = None
 
-# Global variable for movies
+# Global variables
 movies = []
+ratings_stats = {}  # movieId -> {"avg": float, "votes": int}
+
+def load_ratings():
+    global ratings_stats
+    try:
+        csv_path = 'data/ratings.csv' if os.path.exists('data/ratings.csv') else '../data/ratings.csv'
+        if not os.path.exists(csv_path):
+            print(f"⚠️ Ratings not found at {csv_path}")
+            return
+        
+        sums = {}
+        counts = {}
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                mid = row.get('movieId')
+                rat = float(row.get('rating', 0))
+                sums[mid] = sums.get(mid, 0) + rat
+                counts[mid] = counts.get(mid, 0) + 1
+        
+        for mid in sums:
+            # We normalize the score out of 5.0
+            avg = sums[mid] / counts[mid]
+            ratings_stats[mid] = {"avg": round(avg, 2), "votes": counts[mid]}
+        
+        print(f"✅ Pre-calculated ratings for {len(ratings_stats)} movies")
+    except Exception as e:
+        print(f"❌ Error loading ratings: {e}")
 
 def load_movies():
     global movies
@@ -58,22 +86,43 @@ def load_movies():
             reader = csv.DictReader(f)
             movies = []
             for row in reader:
-                movies.append({
+                mid = row.get('movieId', '')
+                m = {
                     'title': row.get('title', ''),
                     'genres': row.get('genres', ''),
-                    'movieId': row.get('movieId', ''),
-                    'year': row.get('year', '')
-                })
+                    'movieId': mid,
+                    'year': ""
+                }
+                
+                # Add year and region
+                m['year'] = re.findall(r'\((\d{4})\)', m.get('title', ''))
+                m['year'] = m['year'][-1] if m['year'] else ""
+                
+                # Check for region strings
+                genres_lower = m['genres'].lower()
+                if 'south-indian' in genres_lower:
+                    m['region'] = 'south-indian'
+                elif 'hindi' in genres_lower:
+                    m['region'] = 'hindi'
+                elif 'hollywood' in genres_lower or int(mid or 0) < 200000:
+                    m['region'] = 'hollywood'
+                else:
+                    m['region'] = 'unknown'
+                
+                movies.append(m)
         
         print(f"✅ Loaded {len(movies)} movies from {csv_path}")
         return True
     except Exception as e:
         print(f"❌ Error loading movies: {e}")
         return False
+        
+import re
 
-# Load movies when server starts
+# Load data when server starts
 @app.on_event("startup")
 async def startup_event():
+    load_ratings()
     load_movies()
     print("🚀 Server is ready!")
 
@@ -131,54 +180,50 @@ async def recommend_movies(movie_title: str, n: int = 10):
     if not base_movie:
         return JSONResponse(status_code=404, content={"error": f"Movie '{movie_title}' not found"})
     
-    # Genre and Region-based recommendation
-    movie_genres = base_movie.get('genres', '').split('|')
-    base_regions = [g.lower() for g in movie_genres if g.lower() in ['hindi', 'south-indian', 'hollywood']]
+    # Hybrid scoring logic (50/50 Content + Collaborative)
+    base_genres = set(base_movie.get('genres', '').split('|'))
+    base_region = base_movie.get('region', 'unknown')
     
-    # Score each movie
     scored = []
     for m in movies:
         if m['title'].lower() == movie_title.lower():
             continue
         
-        matches = []
-        if movie_genres and m.get('genres'):
-            m_genres = m['genres'].split('|')
-            m_regions = [g.lower() for g in m_genres if g.lower() in ['hindi', 'south-indian', 'hollywood']]
-            
-            for g in movie_genres:
-                # Genres like Action, Comedy, etc.
-                if g in m_genres:
-                    matches.append(g)
-            
-            # Calculate Score
-            score = len(matches) / len(movie_genres) if movie_genres else 0
-            
-            # LANGUAGE BOOST: If regions match, give a massive boost
-            region_match = False
-            for r in base_regions:
-                if r in m_regions:
-                    region_match = True
-                    break
-            
-            if region_match:
-                score += 2.0  # Ensure same region movies always appear first
-            
-        scored.append((score, matches, m))
+        # STRICT REGION FILTER: 100% Accurate Language Separation
+        if base_region != 'unknown' and m.get('region') != 'unknown':
+            if m.get('region') != base_region:
+                continue
+        
+        # Part 1: Content Similarity (Genre overlap)
+        m_genres = set(m.get('genres', '').split('|'))
+        matches = base_genres.intersection(m_genres)
+        # Filter out region tags from "matching genres" for cleaner explanation
+        clean_matches = [g for g in matches if g.lower() not in ['hindi', 'south-indian', 'hollywood']]
+        
+        content_score = len(matches) / len(base_genres) if base_genres else 0
+        
+        # Part 2: Collaborative/Popularity Score (Average Rating)
+        m_id = m.get('movieId', '')
+        stats = ratings_stats.get(m_id, {"avg": 3.0, "votes": 0})
+        # Normalize rating (0-5) to 0-1 scale
+        collab_score = stats['avg'] / 5.0
+        
+        # Weighted Final Score (50-50 Hybrid)
+        final_score = (0.5 * content_score) + (0.5 * collab_score)
+        
+        scored.append((final_score, clean_matches, stats['avg'], m))
     
-    # Sort by score and get top n
+    # Sort and return top n
     scored.sort(reverse=True, key=lambda x: x[0])
     recommendations = []
-    for score, matches, m in scored[:n]:
-        # Filter matches to remove the region tag from the UI tags
-        clean_matches = [g for g in matches if g.lower() not in ['hindi', 'south-indian', 'hollywood']]
-        expl = f"Matches: {', '.join(clean_matches)}" if clean_matches else "Recommended for you"
+    for score, matches, avg_rating, m in scored[:n]:
+        expl = f"Hybrid Result: {len(matches)} matching genres + High Rating ({avg_rating}★)"
         recommendations.append({
             'title': m.get('title', ''),
             'genres': m.get('genres', ''),
             'movieId': m.get('movieId', ''),
             'year': m.get('year', ''),
-            'score': min(1.0, score / 3.0) if score > 1.0 else round(score, 2),
+            'score': round(score, 2),
             'explanation': expl
         })
     
