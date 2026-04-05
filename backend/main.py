@@ -4,10 +4,15 @@ from fastapi.responses import JSONResponse
 import csv
 import os
 import random
+import re
+import psycopg2
 from pydantic import BaseModel
 from typing import Optional, List
 
-app = FastAPI()
+# Supabase Real-time Cloud Database
+DB_URL = "postgresql://postgres:supabase1122@db.bvourymdwzzffhxihgnz.supabase.co:5432/postgres"
+
+app = FastAPI(title="CineHybrid AI Discovery Engine - Cloud Edition")
 
 # CORS setup - Most important for frontend connection
 app.add_middleware(
@@ -39,88 +44,52 @@ ratings_stats = {}  # movieId -> {"avg": float, "votes": int}
 
 def load_ratings():
     global ratings_stats
+    print("📈 Fetching 100,000+ ratings from Supabase...")
     try:
-        csv_path = 'data/ratings.csv' if os.path.exists('data/ratings.csv') else '../data/ratings.csv'
-        if not os.path.exists(csv_path):
-            print(f"⚠️ Ratings not found at {csv_path}")
-            return
-        
-        sums = {}
-        counts = {}
-        with open(csv_path, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                mid = row.get('movieId')
-                rat = float(row.get('rating', 0))
-                sums[mid] = sums.get(mid, 0) + rat
-                counts[mid] = counts.get(mid, 0) + 1
-        
-        for mid in sums:
-            # We normalize the score out of 5.0
-            avg = sums[mid] / counts[mid]
-            ratings_stats[mid] = {"avg": round(avg, 2), "votes": counts[mid]}
-        
-        print(f"✅ Pre-calculated ratings for {len(ratings_stats)} movies")
+        conn = psycopg2.connect(DB_URL)
+        cur = conn.cursor()
+        # High-performance SQL aggregation: calculate means on the cloud
+        cur.execute("""
+            SELECT movieId, AVG(rating), COUNT(rating) 
+            FROM ratings 
+            GROUP BY movieId
+        """)
+        rows = cur.fetchall()
+        stats = {}
+        for r in rows:
+            stats[r[0]] = {"avg": round(float(r[1]), 2), "votes": int(r[2])}
+        cur.close()
+        conn.close()
+        ratings_stats = stats
+        print(f"✅ Pre-calculated ratings from {len(ratings_stats)} movies")
     except Exception as e:
-        print(f"❌ Error loading ratings: {e}")
+        print(f"❌ Supabase Ratings Load Failed: {e}")
 
 def load_movies():
     global movies
+    print("☁️ Fetching 10,000+ movies from Supabase Cloud...")
     try:
-        # Try multiple possible paths
-        possible_paths = [
-            'movies.csv',
-            '../movies.csv',
-            './data/movies.csv',
-            '/opt/render/project/src/backend/movies.csv'
-        ]
-        
-        csv_path = None
-        for path in possible_paths:
-            if os.path.exists(path):
-                csv_path = path
-                break
-        
-        if not csv_path:
-            print("❌ CSV file not found in any path")
-            return False
-        
-        with open(csv_path, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            movies = []
-            for row in reader:
-                mid = row.get('movieId', '')
-                m = {
-                    'title': row.get('title', ''),
-                    'genres': row.get('genres', ''),
-                    'movieId': mid,
-                    'year': ""
-                }
-                
-                # Add year and region
-                m['year'] = re.findall(r'\((\d{4})\)', m.get('title', ''))
-                m['year'] = m['year'][-1] if m['year'] else ""
-                
-                # Check for region strings
-                genres_lower = m['genres'].lower()
-                if 'south-indian' in genres_lower:
-                    m['region'] = 'south-indian'
-                elif 'hindi' in genres_lower:
-                    m['region'] = 'hindi'
-                elif 'hollywood' in genres_lower or int(mid or 0) < 200000:
-                    m['region'] = 'hollywood'
-                else:
-                    m['region'] = 'unknown'
-                
-                movies.append(m)
-        
-        print(f"✅ Loaded {len(movies)} movies from {csv_path}")
+        conn = psycopg2.connect(DB_URL)
+        cur = conn.cursor()
+        cur.execute("SELECT movieId, title, genres, year, region FROM movies")
+        rows = cur.fetchall()
+        loaded = []
+        for r in rows:
+            loaded.append({
+                'movieId': str(r[0]),
+                'title': r[1],
+                'genres': r[2],
+                'year': str(r[3]) if r[3] else "",
+                'region': r[4] if r[4] else "unknown"
+            })
+        cur.close()
+        conn.close()
+        movies = loaded
+        print(f"✅ Loaded {len(movies)} movies from Supabase")
         return True
     except Exception as e:
-        print(f"❌ Error loading movies: {e}")
+        print(f"❌ Supabase Movie Load Failed: {e}")
         return False
-        
-import re
 
 # Load data when server starts
 @app.on_event("startup")
