@@ -27,6 +27,8 @@ class MovieResponse(BaseModel):
     genres: str
     movieId: Optional[str] = None
     year: Optional[str] = None
+    score: Optional[float] = 0.0
+    explanation: Optional[str] = None
 
 # Global variable for movies
 movies = []
@@ -108,22 +110,29 @@ async def search_movies(query: str):
     return results
 
 @app.get("/recommend/{movie_title}")
-async def recommend_movies(movie_title: str):
+async def recommend_movies(movie_title: str, n: int = 10):
     if not movies:
         return JSONResponse(status_code=500, content={"error": "Movies not loaded"})
     
     # Find the movie
-    movie = None
+    base_movie = None
     for m in movies:
         if m['title'].lower() == movie_title.lower():
-            movie = m
+            base_movie = m
             break
     
-    if not movie:
+    # If not found exactly, try substring match
+    if not base_movie:
+        for m in movies:
+            if movie_title.lower() in m['title'].lower():
+                base_movie = m
+                break
+    
+    if not base_movie:
         return JSONResponse(status_code=404, content={"error": f"Movie '{movie_title}' not found"})
     
     # Genre-based recommendation
-    movie_genres = movie.get('genres', '').lower()
+    movie_genres = base_movie.get('genres', '').split('|')
     
     # Score each movie based on genre match
     scored = []
@@ -131,39 +140,58 @@ async def recommend_movies(movie_title: str):
         if m['title'].lower() == movie_title.lower():
             continue
         
-        score = 0
+        matches = []
         if movie_genres and m.get('genres'):
-            m_genres = m['genres'].lower()
-            for g in movie_genres.split('|'):
+            m_genres = m['genres'].split('|')
+            for g in movie_genres:
                 if g in m_genres:
-                    score += 1
+                    matches.append(g)
         
-        scored.append((score, m))
+        score = len(matches) / len(movie_genres) if movie_genres else 0
+        scored.append((score, matches, m))
     
-    # Sort by score and get top 10
+    # Sort by score and get top n
     scored.sort(reverse=True, key=lambda x: x[0])
-    recommendations = [{'title': m['title'], 'genres': m['genres']} for score, m in scored[:10]]
+    recommendations = []
+    for score, matches, m in scored[:n]:
+        expl = f"Matches: {', '.join(matches)}" if matches else "Popular in your region"
+        recommendations.append({
+            'title': m.get('title', ''),
+            'genres': m.get('genres', ''),
+            'movieId': m.get('movieId', ''),
+            'year': m.get('year', ''),
+            'score': round(score, 2),
+            'explanation': expl
+        })
     
     # If not enough, add random movies
     if len(recommendations) < 5:
-        remaining = [{'title': m['title'], 'genres': m['genres']} for m in movies 
+        remaining = [m for m in movies 
                     if m['title'].lower() != movie_title.lower() 
-                    and {'title': m['title'], 'genres': m['genres']} not in recommendations]
+                    and m['title'] not in [r['title'] for r in recommendations]]
         random.shuffle(remaining)
-        recommendations.extend(remaining[:10-len(recommendations)])
+        for m in remaining[:n-len(recommendations)]:
+            recommendations.append({
+                'title': m.get('title', ''),
+                'genres': m.get('genres', ''),
+                'movieId': m.get('movieId', ''),
+                'year': m.get('year', ''),
+                'score': 0.1,
+                'explanation': "Popular recommendation"
+            })
     
     return {"movie": movie_title, "recommendations": recommendations}
 
 @app.post("/recommend")
 async def recommend_movies_post(request: RecommendRequest):
-    return await recommend_movies(request.movie_title)
+    return await recommend_movies(request.movie_title, n=request.n or 10)
 
 @app.get("/region/{region}")
 async def get_by_region(region: str):
     # Map regions to internal genre search terms
     region_map = {
         'Bollywood': 'Hindi',
-        'South Indian': 'South', # Assuming 'South' or similar in genres
+        'South Indian': 'South',
         'Hollywood': 'English'
     }
     
@@ -177,7 +205,10 @@ async def get_by_region(region: str):
             results.append({
                 'title': m['title'],
                 'genres': m['genres'],
-                'movieId': m.get('movieId')
+                'movieId': m.get('movieId'),
+                'year': m.get('year'),
+                'score': 0.8,
+                'explanation': f"Featured in {region}"
             })
         if len(results) >= 20:
             break
