@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 
 # Supabase Real-time Cloud Database
-DB_URL = "postgresql://postgres:supabase1122@db.bvourymdwzzffhxihgnz.supabase.co:5432/postgres"
+DB_URL = os.getenv("DATABASE_URL", "postgresql://postgres:supabase1122@db.bvourymdwzzffhxihgnz.supabase.co:5432/postgres")
 
 app = FastAPI(title="CineHybrid AI Discovery Engine - Cloud Edition")
 

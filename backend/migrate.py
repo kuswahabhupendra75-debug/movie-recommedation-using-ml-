@@ -5,7 +5,7 @@ from psycopg2.extras import execute_values
 import re
 
 # Supabase Credentials from user
-DB_URL = "postgresql://postgres:supabase1122@db.bvourymdwzzffhxihgnz.supabase.co:5432/postgres"
+DB_URL = os.getenv("DATABASE_URL", "postgresql://postgres:supabase1122@db.bvourymdwzzffhxihgnz.supabase.co:5432/postgres")
 
 def migrate():
     print("🚀 Starting migration to Supabase...")
