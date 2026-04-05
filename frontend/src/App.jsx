@@ -9,11 +9,7 @@ import SearchBar from './components/SearchBar'
 import MovieCard from './components/MovieCard'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
-
-fetch('https://movie-recommendation-using-ml.onrender.com/search/3%20Idiots')
-  .then(res => res.json())
-  .then(data => console.log('Movies found:', data))
-  .catch(err => console.log('Error:', err))
+const API = "https://movie-recommedation-using-ml.onrender.com";
 
 // ── Main discover page ────────────────────────────────────────────────────
 function DiscoverPage() {
