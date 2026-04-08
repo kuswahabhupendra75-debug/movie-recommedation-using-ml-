@@ -1,0 +1,16 @@
+name: Keep Render Backend Alive 24/7
+
+on:
+  schedule:
+    # Run every 10 minutes to prevent Render from going into 15-min idle sleep
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  ping-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend health endpoint
+        run: |
+          echo "Pinging backend at https://movie-recommedation-using-ml.onrender.com/health"
+          curl -f https://movie-recommedation-using-ml.onrender.com/health || echo "Ping failed, but workflow will continue"
