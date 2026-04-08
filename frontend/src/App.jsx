@@ -16,18 +16,23 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 // ── 2026 Trending Now data (hardcoded for instant display) ─────────────────
 const TRENDING_2026 = [
-  { title: 'KGF Chapter 3 (2025)', genres: 'Action|Crime|Drama', year: '2025', imdb_rating: 9.2, votes: 125000, score: 0.92, explanation: '🔥 Biggest release of 2025', movieId: '6000041' },
-  { title: 'Saiyaara (2025)', genres: 'Romance|Drama|Musical', year: '2025', imdb_rating: 8.8, votes: 98000, score: 0.88, explanation: '🎵 Most romantic film of 2025', movieId: '5000031' },
-  { title: 'Pushpa 2: The Rule (2024)', genres: 'Action|Crime|Drama', year: '2024', imdb_rating: 8.9, votes: 210000, score: 0.89, explanation: '🌿 Record-breaking blockbuster', movieId: '6000001' },
-  { title: 'Chhava (2025)', genres: 'Historical|Action|Drama', year: '2025', imdb_rating: 8.5, votes: 87000, score: 0.85, explanation: '⚔️ Epic historical drama', movieId: '5000036' },
-  { title: 'Amaran (2024)', genres: 'War|Action|Biography|Drama', year: '2024', imdb_rating: 8.6, votes: 145000, score: 0.86, explanation: '🎖️ Emotional war biography', movieId: '6000011' },
-  { title: 'L2 Empuraan (2025)', genres: 'Action|Drama|Thriller|Crime', year: '2025', imdb_rating: 8.6, votes: 113000, score: 0.86, explanation: '🔥 Massive Malayalam blockbuster', movieId: '6000048' },
-  { title: 'Don 3 (2026)', genres: 'Crime|Action|Thriller', year: '2026', imdb_rating: 8.0, votes: 45000, score: 0.80, explanation: '🎯 Most anticipated 2026 film', movieId: '5000061' },
-  { title: 'Kalki 2898 AD (2024)', genres: 'Sci-Fi|Action|Mythology|Fantasy', year: '2024', imdb_rating: 8.1, votes: 178000, score: 0.81, explanation: '🤖 Sci-Fi mythology epic', movieId: '6000002' },
-  { title: 'Baahubali 3 (2026)', genres: 'Epic|Action|Historical|Fantasy', year: '2026', imdb_rating: 9.5, votes: 320000, score: 0.95, explanation: '👑 Most awaited sequel ever', movieId: '6000071' },
-  { title: 'RRR 2 (2026)', genres: 'Action|Historical|Drama|Adventure', year: '2026', imdb_rating: 9.2, votes: 290000, score: 0.92, explanation: '🔥 S.S. Rajamouli masterpiece sequel', movieId: '6000072' },
-  { title: 'Chhava (2025)', genres: 'Historical|Action|Drama', year: '2025', imdb_rating: 8.5, votes: 87000, score: 0.85, explanation: '⚔️ Vicky Kaushal as Sambhaji', movieId: '5000036b' },
-  { title: 'Ground Zero (2025)', genres: 'Action|War|Thriller', year: '2025', imdb_rating: 7.9, votes: 56000, score: 0.79, explanation: '💥 Intense war thriller', movieId: '5000037' },
+  { title: 'KGF Chapter 3 (2025)', genres: 'Action|Crime|Drama', year: '2025', imdb_rating: 9.2, votes: 125000, score: 0.92, explanation: '🔥 Biggest release of 2025', movieId: '6000041', region: 'South Indian' },
+  { title: 'Saiyaara (2025)', genres: 'Romance|Drama|Musical', year: '2025', imdb_rating: 8.8, votes: 98000, score: 0.88, explanation: '🎵 Most romantic film of 2025', movieId: '5000031', region: 'Bollywood' },
+  { title: 'Pushpa 2: The Rule (2024)', genres: 'Action|Crime|Drama', year: '2024', imdb_rating: 8.9, votes: 210000, score: 0.89, explanation: '🌿 Record-breaking blockbuster', movieId: '6000001', region: 'South Indian' },
+  { title: 'Chhava (2025)', genres: 'Historical|Action|Drama', year: '2025', imdb_rating: 8.5, votes: 87000, score: 0.85, explanation: '⚔️ Epic historical drama', movieId: '5000036', region: 'Bollywood' },
+  { title: 'Avengers: Doomsday (2026)', genres: 'Action|Adventure|Sci-Fi', year: '2026', imdb_rating: 9.4, votes: 450000, score: 0.94, explanation: '🦸‍♂️ The MCU returns', movieId: '7000001', region: 'Hollywood' },
+  { title: 'Amaran (2024)', genres: 'War|Action|Biography|Drama', year: '2024', imdb_rating: 8.6, votes: 145000, score: 0.86, explanation: '🎖️ Emotional war biography', movieId: '6000011', region: 'South Indian' },
+  { title: 'The Batman Part II (2026)', genres: 'Action|Crime|Drama', year: '2026', imdb_rating: 9.0, votes: 310000, score: 0.90, explanation: '🦇 Dark knight sequel', movieId: '7000002', region: 'Hollywood' },
+  { title: 'L2 Empuraan (2025)', genres: 'Action|Drama|Thriller|Crime', year: '2025', imdb_rating: 8.6, votes: 113000, score: 0.86, explanation: '🔥 Massive Malayalam blockbuster', movieId: '6000048', region: 'South Indian' },
+  { title: 'Don 3 (2026)', genres: 'Crime|Action|Thriller', year: '2026', imdb_rating: 8.0, votes: 45000, score: 0.80, explanation: '🎯 Most anticipated 2026 film', movieId: '5000061', region: 'Bollywood' },
+  { title: 'Kalki 2898 AD (2024)', genres: 'Sci-Fi|Action|Mythology|Fantasy', year: '2024', imdb_rating: 8.1, votes: 178000, score: 0.81, explanation: '🤖 Sci-Fi mythology epic', movieId: '6000002', region: 'South Indian' },
+  { title: 'Avatar: Fire and Ash (2025)', genres: 'Action|Adventure|Fantasy', year: '2025', imdb_rating: 8.7, votes: 380000, score: 0.87, explanation: '🌊 Return to Pandora', movieId: '7000003', region: 'Hollywood' },
+  { title: 'Baahubali 3 (2026)', genres: 'Epic|Action|Historical|Fantasy', year: '2026', imdb_rating: 9.5, votes: 320000, score: 0.95, explanation: '👑 Most awaited sequel ever', movieId: '6000071', region: 'South Indian' },
+  { title: 'RRR 2 (2026)', genres: 'Action|Historical|Drama|Adventure', year: '2026', imdb_rating: 9.2, votes: 290000, score: 0.92, explanation: '🔥 S.S. Rajamouli masterpiece sequel', movieId: '6000072', region: 'South Indian' },
+  { title: 'Dune: Part Three (2026)', genres: 'Sci-Fi|Action|Adventure', year: '2026', imdb_rating: 9.1, votes: 290000, score: 0.91, explanation: '🏜️ Epic conclusion', movieId: '7000004', region: 'Hollywood' },
+  { title: 'Ground Zero (2025)', genres: 'Action|War|Thriller', year: '2025', imdb_rating: 7.9, votes: 56000, score: 0.79, explanation: '💥 Intense war thriller', movieId: '5000037', region: 'Bollywood' },
+  { title: 'Sikandar (2025)', genres: 'Action|Drama', year: '2025', imdb_rating: 8.2, votes: 92000, score: 0.82, explanation: '💥 Massive action entertainer', movieId: '5000088', region: 'Bollywood' },
+  { title: 'Deadpool & Wolverine (2024)', genres: 'Action|Comedy|Sci-Fi', year: '2024', imdb_rating: 8.4, votes: 410000, score: 0.84, explanation: '⚔️ Best Marvel team-up', movieId: '7000005', region: 'Hollywood' }
 ]
 
 // ── Trending pill chip ──────────────────────────────────────────────────────
@@ -125,6 +130,17 @@ function DiscoverPage() {
     const fetchRegion = async () => {
       if (activeRegion === 'All') { if (!cleared) setRegionMovies([]); return }
       setLoading(true); setError(''); setRecommendations([]); setCurrentQuery('')
+
+      // ── Instant Frontend Fallback when Server is Warming Up ──
+      if (apiStatus === 'waking' || apiStatus === 'checking' || apiStatus === 'error') {
+        const mockRegion = TRENDING_2026.filter(m => m.region === activeRegion)
+        if (!cleared) {
+          setRegionMovies(mockRegion)
+          setLoading(false)
+        }
+        return
+      }
+
       try {
         const { data } = await axios.get(`${API}/region/${activeRegion}`)
         if (!cleared) setRegionMovies(data.movies || [])
@@ -133,7 +149,7 @@ function DiscoverPage() {
     }
     fetchRegion()
     return () => { cleared = true }
-  }, [activeRegion])
+  }, [activeRegion, apiStatus])
 
   // API health check – handles Render free-tier cold-start (can take 30-90s)
   useEffect(() => {
@@ -326,8 +342,8 @@ function DiscoverPage() {
           </div>
         </motion.div>
 
-        {/* ── 🆕 NEW 2026 RELEASES ── */}
-        {!loading && recommendations.length === 0 && (
+        {/* ── 🆕 NEW 2026 RELEASES (Only on 'All' tab) ── */}
+        {!loading && recommendations.length === 0 && activeRegion === 'All' && (
           <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mb-10">
             {/* 2026 Section */}
             <div className="mb-5">
