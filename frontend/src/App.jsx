@@ -260,29 +260,6 @@ function DiscoverPage() {
 
       <Navbar />
 
-      {/* API Status banner */}
-      <AnimatePresence>
-        {apiStatus === 'waking' && (
-          <motion.div key="waking" initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
-            className="wake-up-bar text-center py-2 px-4 text-sm"
-            style={{ borderBottom: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc' }}>
-            <span className="spinner spinner-sm" style={{ display: 'inline-block', marginRight: '0.5rem', verticalAlign: 'middle', borderTopColor: '#818cf8' }} />
-            🚀 AI Engine is warming up… ({wakeAttempts * 6}s elapsed) — Render free tier takes 30–90s on first visit
-          </motion.div>
-        )}
-        {apiStatus === 'error' && (
-          <motion.div key="err" initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
-            className="text-center py-2 px-4 text-sm"
-            style={{ background: 'rgba(244,63,94,0.12)', borderBottom: '1px solid rgba(244,63,94,0.25)', color: '#f87171' }}>
-            ⚠️ Backend is sleeping (Render free tier) — retrying automatically…
-            <button
-              onClick={() => setApiStatus('checking') || window.location.reload()}
-              style={{ marginLeft: '0.75rem', background: 'rgba(244,63,94,0.2)', border: '1px solid rgba(244,63,94,0.4)', color: '#fca5a5', borderRadius: '0.5rem', padding: '0.1rem 0.6rem', cursor: 'pointer', fontSize: '0.75rem' }}
-            >↺ Retry</button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <main className="relative max-w-7xl mx-auto px-4 pb-20">
 
         {/* ── Hero ── */}
