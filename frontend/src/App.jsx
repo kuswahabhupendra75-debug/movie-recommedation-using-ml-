@@ -143,8 +143,27 @@ function DiscoverPage() {
 
       try {
         const { data } = await axios.get(`${API}/region/${activeRegion}`)
-        if (!cleared) setRegionMovies(data.movies || [])
-      } catch { if (!cleared) setRegionMovies([]) }
+        const backendMovies = data.movies || []
+        
+        if (!cleared) {
+          // Combine TRENDING mock data with backend data, ensuring no duplicates
+          const mockRegion = TRENDING_2026.filter(m => m.region === activeRegion)
+          const combined = [...mockRegion]
+          
+          for (const bm of backendMovies) {
+             if (!combined.some(m => m.title === bm.title)) {
+               combined.push(bm)
+             }
+          }
+          
+          setRegionMovies(combined.length > 0 ? combined : mockRegion)
+        }
+      } catch { 
+        if (!cleared) {
+          const mockRegion = TRENDING_2026.filter(m => m.region === activeRegion)
+          setRegionMovies(mockRegion)
+        }
+      }
       finally { if (!cleared) setLoading(false) }
     }
     fetchRegion()
