@@ -109,6 +109,7 @@ function DiscoverPage() {
   const [currentQuery, setCurrentQuery] = useState('')
   const [apiStatus, setApiStatus] = useState('checking')
   const [wakeAttempts, setWakeAttempts] = useState(0)
+  const [pendingSearch, setPendingSearch] = useState(null)  // Queued search while backend wakes
   const [activeRegion, setActiveRegion] = useState('All')
   const [regionMovies, setRegionMovies] = useState([])
   const [alpha, setAlpha] = useState(0.5)
@@ -116,6 +117,7 @@ function DiscoverPage() {
   const [showMetrics, setShowMetrics] = useState(false)
   const [metrics, setMetrics] = useState(null)
   const scrollRef = useRef(null)
+  const prevApiStatusRef = useRef('checking')
 
   const activeUserId = user?.userId || null
 
@@ -165,6 +167,40 @@ function DiscoverPage() {
     return () => { cleared = true; clearInterval(iv) }
   }, [])
 
+  // Keep-alive: ping backend every 14 min to prevent Render free-tier sleep
+  useEffect(() => {
+    const keepAlive = setInterval(() => {
+      axios.get(`${API}/health`, { timeout: 5000 }).catch(() => {})
+    }, 840000) // 14 minutes
+    return () => clearInterval(keepAlive)
+  }, [])
+
+  // Auto-execute pending search the moment backend comes online
+  useEffect(() => {
+    const justCameOnline = prevApiStatusRef.current !== 'ok' && apiStatus === 'ok'
+    prevApiStatusRef.current = apiStatus
+    if (justCameOnline && pendingSearch) {
+      const title = pendingSearch
+      setPendingSearch(null)
+      setError('')
+      setLoading(true)
+      setCurrentQuery(title)
+      setActiveRegion('All')
+      axios.post(`${API}/recommend`, {
+        movie_title: title, n: 12, alpha, beta, user_id: activeUserId
+      }).then(({ data }) => {
+        setRecommendations(data.recommendations || [])
+        setTimeout(() => window.scrollTo({ top: 400, behavior: 'smooth' }), 100)
+      }).catch(err => {
+        const errData = err.response?.data
+        const msg = errData?.error || errData?.detail
+        const msgStr = typeof msg === 'object' ? JSON.stringify(msg) : (msg || 'Could not connect to the server. Please try again.')
+        setError(msgStr)
+        setRecommendations([])
+      }).finally(() => setLoading(false))
+    }
+  }, [apiStatus, pendingSearch])
+
   // Metrics fetch
   useEffect(() => {
     if (showMetrics && !metrics) {
@@ -178,16 +214,26 @@ function DiscoverPage() {
 
     if (cleanQ === '') {
       if (['hindi', 'bollywood'].some(w => qLower.includes(w))) {
-        setActiveRegion('Bollywood'); setRecommendations([]); setCurrentQuery(''); setError(''); return
+        setActiveRegion('Bollywood'); setRecommendations([]); setCurrentQuery(''); setError(''); setPendingSearch(null); return
       }
       if (['south', 'tamil', 'telugu', 'tollywood'].some(w => qLower.includes(w))) {
-        setActiveRegion('South Indian'); setRecommendations([]); setCurrentQuery(''); setError(''); return
+        setActiveRegion('South Indian'); setRecommendations([]); setCurrentQuery(''); setError(''); setPendingSearch(null); return
       }
       if (['english', 'hollywood'].some(w => qLower.includes(w))) {
-        setActiveRegion('Hollywood'); setRecommendations([]); setCurrentQuery(''); setError(''); return
+        setActiveRegion('Hollywood'); setRecommendations([]); setCurrentQuery(''); setError(''); setPendingSearch(null); return
       }
     }
 
+    // ── If backend is still warming up, queue the search instead of failing ──
+    if (apiStatus === 'waking' || apiStatus === 'checking') {
+      setPendingSearch(title)
+      setCurrentQuery(title)
+      setRecommendations([])
+      setError('')
+      return  // Will auto-fire the moment apiStatus becomes 'ok'
+    }
+
+    setPendingSearch(null)
     setLoading(true); setError(''); setCurrentQuery(title); setActiveRegion('All')
     try {
       const { data } = await axios.post(`${API}/recommend`, {
@@ -437,9 +483,25 @@ function DiscoverPage() {
           )}
         </AnimatePresence>
 
+        {/* ── Pending Search Banner (server warming up) ── */}
+        <AnimatePresence>
+          {pendingSearch && !loading && (
+            <motion.div className="max-w-2xl mx-auto mb-8 text-center rounded-2xl p-8"
+              style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)' }}
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+              <p className="text-5xl mb-4" style={{ animation: 'pulse 1.5s ease-in-out infinite' }}>⏳</p>
+              <p className="font-semibold mb-2" style={{ color: '#fbbf24' }}>
+                🚀 Server warming up… Auto-searching for <span style={{ color: '#fff' }}>"{pendingSearch.replace(/\s*\(\d{4}\)\s*$/, '')}"</span>
+              </p>
+              <p className="text-sm" style={{ color: '#64748b' }}>Render free tier takes 30–90s on cold start. Sit tight — your results will appear automatically! 🍿</p>
+              <button onClick={() => setPendingSearch(null)} style={{ marginTop: '1rem', fontSize: '0.75rem', color: '#64748b', background: 'transparent', border: 'none', cursor: 'pointer' }}>✕ Cancel</button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* ── Error ── */}
         <AnimatePresence>
-          {error && !loading && (
+          {error && !loading && !pendingSearch && (
             <motion.div id="error-message" className="max-w-2xl mx-auto mb-8 text-center rounded-2xl p-8"
               style={{ background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)' }}
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>

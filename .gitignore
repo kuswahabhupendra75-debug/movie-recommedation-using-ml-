@@ -24,10 +24,19 @@ ml_engine/data/
 .DS_Store
 Thumbs.db
 
-# Local env only (DO NOT commit local dev env)
-.env.local
+# ── SECURITY: NEVER commit .env files ───────────────────────────────────────
+# These files contain database passwords and API secrets
+.env
+.env.*
+backend/.env
+backend/.env.*
 frontend/.env.local
+
+# ── Safe to commit (production URL only, no passwords) ─────────────────────
+# frontend/.env is committed because it only contains the backend URL
+# render.yaml is committed but must NOT have actual passwords in it
 
 # Logs
 *.log
 npm-debug.log*
+

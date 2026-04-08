@@ -6,6 +6,8 @@ services:
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        value: postgresql://postgres:supabase1122@db.bvourymdwzzffhxihgnz.supabase.co:5432/postgres
+        # SECURITY: Set this value manually in Render Dashboard > Environment
+        # Do NOT put the actual password in this file (it gets committed to Git)
+        sync: false
       - key: PYTHON_VERSION
         value: 3.11.0

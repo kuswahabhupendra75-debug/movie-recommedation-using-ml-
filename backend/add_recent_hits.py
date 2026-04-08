@@ -2,8 +2,10 @@ import os
 import psycopg2
 from psycopg2.extras import execute_values
 
-# Supabase Credentials (from main.py)
-DB_URL = os.getenv("DATABASE_URL", "postgresql://postgres:supabase1122@db.bvourymdwzzffhxihgnz.supabase.co:5432/postgres")
+# SECURITY: Load from environment variable only — never hardcode credentials
+DB_URL = os.getenv("DATABASE_URL")
+if not DB_URL:
+    raise RuntimeError("Set DATABASE_URL env var before running this script")
 
 MOVIES_TO_ADD = [
     # Bollywood Hits

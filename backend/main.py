@@ -120,11 +120,11 @@ def _norm(title: str) -> str:
 
 _NORM_RATINGS = {_norm(k): v for k, v in REAL_IMDB_RATINGS.items()}
 
-# ── Supabase Connection ────────────────────────────────────────────────────
-DB_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:supabase1122@db.bvourymdwzzffhxihgnz.supabase.co:5432/postgres"
-)
+# ── Supabase Connection ────────────────────────────────────────────────────────
+# SECURITY: Never hardcode credentials. Set DATABASE_URL as an environment variable.
+# On Render: Dashboard → Service → Environment → Add DATABASE_URL
+# Locally: add DATABASE_URL to backend/.env (never commit)
+DB_URL = os.getenv("DATABASE_URL")  # None if not set — app works without DB
 
 app = FastAPI(title="CineHybrid AI Discovery Engine - v3.0")
 
@@ -161,8 +161,10 @@ ratings_stats = {}   # movieId -> {"avg": float, "votes": int}
 user_ratings = {}    # "user_id:movie_id" -> {"rating": int, "title": str}
 _db_ok = False
 
-# ── DB Helpers ─────────────────────────────────────────────────────────────
+# ── DB Helpers ──────────────────────────────────────────────────────────────────
 def get_conn():
+    if not DB_URL:
+        raise RuntimeError("DATABASE_URL environment variable not set")
     return psycopg2.connect(DB_URL, connect_timeout=10)
 
 def load_ratings():
