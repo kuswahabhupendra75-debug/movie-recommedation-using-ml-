@@ -42,7 +42,10 @@ export default function Navbar() {
                 style={{ border: '1px solid #2d3a5e', background: '#1e2540' }}
                 onClick={() => setMenuOpen(v => !v)}
               >
-                <img src={user.avatar} alt={user.name} className="w-7 h-7 rounded-full" />
+                {user.avatar
+                  ? <img src={user.avatar} alt={user.name} className="w-7 h-7 rounded-full" onError={e => { e.target.style.display='none' }} />
+                  : <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>{(user.name||'U')[0].toUpperCase()}</div>
+                }
                 <span className="text-sm font-medium text-white hidden sm:block max-w-[100px] truncate">{user.name}</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />

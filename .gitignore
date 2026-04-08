@@ -1,19 +1,33 @@
 # Dependencies
 node_modules/
+frontend/node_modules/
 
 # Python
 __pycache__/
 *.pyc
+*.pyo
 venv/
 env/
+.venv/
+*.egg-info/
 
-# Data
+# Build output
+dist/
+build/
+frontend/dist/
+
+# Data files (large)
 ml_engine/data/
 *.zip
-*.csv
 
 # OS
 .DS_Store
 Thumbs.db
-.venv/
 
+# Local env only (DO NOT commit local dev env)
+.env.local
+frontend/.env.local
+
+# Logs
+*.log
+npm-debug.log*

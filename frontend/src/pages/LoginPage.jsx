@@ -28,15 +28,14 @@ export default function LoginPage() {
   const { login, loginWithGoogle, loginWithGitHub } = useAuth()
   const navigate = useNavigate()
 
-  const [form, setForm] = useState({ email: '', password: '' })
+  const [form, setForm] = useState({ username: '', password: '' })
   const [showPw, setShowPw] = useState(false)
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
 
   const validate = () => {
     const e = {}
-    if (!form.email) e.email = 'Email is required'
-    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Enter a valid email'
+    if (!form.username.trim()) e.username = 'Username is required'
     if (!form.password) e.password = 'Password is required'
     else if (form.password.length < 6) e.password = 'At least 6 characters'
     return e
@@ -48,7 +47,7 @@ export default function LoginPage() {
     if (Object.keys(errs).length) { setErrors(errs); return }
 
     setSubmitting(true)
-    const result = await login(form.email, form.password)
+    const result = await login(form.username, form.password)
     if (result.success) {
       navigate('/')
     } else {
@@ -118,23 +117,23 @@ export default function LoginPage() {
             <div className="flex-1 h-px bg-surface-border" />
           </div>
 
-          {/* Email form */}
+          {/* Username form */}
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-            {/* Email */}
+            {/* Username */}
             <div>
-              <label htmlFor="login-email" className="block text-text-secondary text-sm font-medium mb-1.5">
-                Email address
+              <label htmlFor="login-username" className="block text-text-secondary text-sm font-medium mb-1.5">
+                Username
               </label>
               <input
-                id="login-email"
-                type="email"
-                className={`input-field ${errors.email ? 'border-accent-rose focus:border-accent-rose' : ''}`}
-                placeholder="you@example.com"
-                value={form.email}
-                onChange={e => { setForm(f => ({ ...f, email: e.target.value })); setErrors(er => ({ ...er, email: '' })) }}
-                autoComplete="email"
+                id="login-username"
+                type="text"
+                className={`input-field ${errors.username ? 'border-accent-rose focus:border-accent-rose' : ''}`}
+                placeholder="Enter your username"
+                value={form.username}
+                onChange={e => { setForm(f => ({ ...f, username: e.target.value })); setErrors(er => ({ ...er, username: '' })) }}
+                autoComplete="username"
               />
-              {errors.email && <p className="text-accent-rose text-xs mt-1">{errors.email}</p>}
+              {errors.username && <p className="text-accent-rose text-xs mt-1">{errors.username}</p>}
             </div>
 
             {/* Password */}

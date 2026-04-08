@@ -1,5 +1,7 @@
 fastapi
-uvicorn
+uvicorn[standard]
 python-multipart
 pydantic
 typing-extensions
+psycopg2-binary
+requests
