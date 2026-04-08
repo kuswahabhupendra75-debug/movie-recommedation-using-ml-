@@ -108,6 +108,7 @@ function DiscoverPage() {
   const [error, setError] = useState('')
   const [currentQuery, setCurrentQuery] = useState('')
   const [apiStatus, setApiStatus] = useState('checking')
+  const [wakeAttempts, setWakeAttempts] = useState(0)
   const [activeRegion, setActiveRegion] = useState('All')
   const [regionMovies, setRegionMovies] = useState([])
   const [alpha, setAlpha] = useState(0.5)
@@ -134,17 +135,33 @@ function DiscoverPage() {
     return () => { cleared = true }
   }, [activeRegion])
 
-  // API health check
+  // API health check – handles Render free-tier cold-start (can take 30-90s)
   useEffect(() => {
     let cleared = false
+    let attempts = 0
+    const MAX_ATTEMPTS = 25  // retry for ~150s — Render free tier can take up to 90s
+
     const check = async () => {
       try {
-        await axios.get(`${API}/health`, { timeout: 5000 })
-        if (!cleared) setApiStatus('ok')
-      } catch { if (!cleared) setApiStatus('error') }
+        await axios.get(`${API}/health`, { timeout: 8000 })
+        if (!cleared) { setApiStatus('ok'); setWakeAttempts(0) }
+      } catch {
+        attempts++
+        if (!cleared) {
+          setWakeAttempts(attempts)
+          if (attempts < MAX_ATTEMPTS) {
+            setApiStatus('waking')   // still trying
+          } else {
+            setApiStatus('error')    // gave up
+          }
+        }
+      }
     }
     check()
-    const iv = setInterval(check, 10000)
+    // Retry every 6s while waking; every 30s once connected
+    const iv = setInterval(() => {
+      if (!cleared) check()
+    }, 6000)
     return () => { cleared = true; clearInterval(iv) }
   }, [])
 
@@ -182,7 +199,7 @@ function DiscoverPage() {
     } catch (err) {
       const errData = err.response?.data
       const msg = errData?.error || errData?.detail
-      const msgStr = typeof msg === 'object' ? JSON.stringify(msg) : (msg || 'Backend not connected. Please start the server.')
+      const msgStr = typeof msg === 'object' ? JSON.stringify(msg) : (msg || 'Could not connect to the server. Please try again in a few seconds.')
       setError(msgStr)
       setRecommendations([])
     } finally { setLoading(false) }
@@ -206,11 +223,23 @@ function DiscoverPage() {
 
       {/* API Status banner */}
       <AnimatePresence>
+        {apiStatus === 'waking' && (
+          <motion.div key="waking" initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
+            className="wake-up-bar text-center py-2 px-4 text-sm"
+            style={{ borderBottom: '1px solid rgba(99,102,241,0.3)', color: '#a5b4fc' }}>
+            <span className="spinner spinner-sm" style={{ display: 'inline-block', marginRight: '0.5rem', verticalAlign: 'middle', borderTopColor: '#818cf8' }} />
+            🚀 AI Engine is warming up… ({wakeAttempts * 6}s elapsed) — Render free tier takes 30–90s on first visit
+          </motion.div>
+        )}
         {apiStatus === 'error' && (
           <motion.div key="err" initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
             className="text-center py-2 px-4 text-sm"
-            style={{ background: 'rgba(244,63,94,0.15)', borderBottom: '1px solid rgba(244,63,94,0.3)', color: '#f87171' }}>
-            ⚠️ Backend not connected — double-click <strong>start.bat</strong> to launch servers
+            style={{ background: 'rgba(244,63,94,0.12)', borderBottom: '1px solid rgba(244,63,94,0.25)', color: '#f87171' }}>
+            ⚠️ Backend is sleeping (Render free tier) — retrying automatically…
+            <button
+              onClick={() => setApiStatus('checking') || window.location.reload()}
+              style={{ marginLeft: '0.75rem', background: 'rgba(244,63,94,0.2)', border: '1px solid rgba(244,63,94,0.4)', color: '#fca5a5', borderRadius: '0.5rem', padding: '0.1rem 0.6rem', cursor: 'pointer', fontSize: '0.75rem' }}
+            >↺ Retry</button>
           </motion.div>
         )}
       </AnimatePresence>

@@ -149,9 +149,16 @@ class AuthRequest(BaseModel):
     password: str
     email: Optional[str] = None
 
+class RateRequest(BaseModel):
+    movie_id: str
+    movie_title: Optional[str] = None
+    rating: int  # 1-10
+    user_id: Optional[str] = 'guest'
+
 # ── Global In-Memory Cache ─────────────────────────────────────────────────
 movies = []
 ratings_stats = {}   # movieId -> {"avg": float, "votes": int}
+user_ratings = {}    # "user_id:movie_id" -> {"rating": int, "title": str}
 _db_ok = False
 
 # ── DB Helpers ─────────────────────────────────────────────────────────────
@@ -170,9 +177,23 @@ def load_movies():
     import os
     import re
     try:
-        movies_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'movies.csv')
+        # Try multiple paths to handle local dev AND Render deployment (no rootDir)
+        base = os.path.dirname(os.path.abspath(__file__))
+        candidates = [
+            os.path.join(base, '..', 'data', 'movies.csv'),   # local: backend/../data/
+            os.path.join(base, 'movies.csv'),                  # backend/movies.csv fallback
+            os.path.join(os.getcwd(), 'data', 'movies.csv'),  # cwd/data/ (Render)
+            os.path.join(os.getcwd(), 'backend', 'movies.csv'),# cwd/backend/movies.csv
+        ]
+        movies_path = None
+        for c in candidates:
+            if os.path.exists(c):
+                movies_path = c
+                print(f"✅ Found movies.csv at: {c}")
+                break
+
         loaded = []
-        if os.path.exists(movies_path):
+        if movies_path and os.path.exists(movies_path):
             with open(movies_path, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 for r in reader:
@@ -197,10 +218,11 @@ def load_movies():
                         'region': region
                     })
             movies = loaded
-            print(f"✅ Loaded {len(movies)} movies from CSV (fake API)")
+            print(f"✅ Loaded {len(movies)} movies from CSV")
             return True
         else:
-            print("❌ movies.csv not found!")
+            print(f"❌ movies.csv not found! Tried: {candidates}")
+            print(f"   cwd={os.getcwd()}, __file__={os.path.abspath(__file__)}")
             return False
     except Exception as e:
         print(f"❌ Movies load failed: {e}")
@@ -626,7 +648,29 @@ async def login(req: AuthRequest):
 # ── Reload endpoint (manual cache refresh) ────────────────────────────────
 @app.post("/reload")
 async def reload_data():
-    """Force reload movies and ratings from Supabase."""
+    """Force reload movies and ratings."""
     load_ratings()
     load_movies()
     return {"status": "reloaded", "movies": len(movies), "ratings": len(ratings_stats)}
+
+# ── User Rating endpoint (stores in memory, no-op if backend is stateless) ──
+@app.post("/rate")
+async def rate_movie(req: RateRequest):
+    """Accept a user rating. Stored in-memory (resets on restart)."""
+    if not (1 <= req.rating <= 10):
+        return JSONResponse(status_code=400, content={"error": "Rating must be 1-10"})
+    # In-memory only — upgrading to DB would require supabase insert
+    key = f"{req.user_id}:{req.movie_id}"
+    user_ratings[key] = {"rating": req.rating, "title": req.movie_title or req.movie_id}
+    return {
+        "status": "ok",
+        "message": f"Rated '{req.movie_title or req.movie_id}' {req.rating}/10",
+        "movie_id": req.movie_id,
+        "rating": req.rating
+    }
+
+@app.get("/my-ratings")
+async def my_ratings(user_id: str = 'guest'):
+    """Get all ratings for a user."""
+    result = {k.split(':', 1)[1]: v for k, v in user_ratings.items() if k.startswith(f"{user_id}:")}
+    return {"user_id": user_id, "ratings": result}
